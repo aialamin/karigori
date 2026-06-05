@@ -18,19 +18,27 @@ const allowedOrigins = (process.env.CORS_ORIGIN || process.env.CLIENT_URL || '')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.length === 0) return true;
+  if (allowedOrigins.includes(origin)) return true;
 
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-      return cb(null, true);
-    }
-    return cb(new Error('Not allowed by CORS'));
-  },
+  try {
+    const { hostname } = new URL(origin);
+    return hostname === 'karigori-org.vercel.app' || hostname.endsWith('.vercel.app');
+  } catch {
+    return false;
+  }
+};
+const corsOptions = {
+  origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-app.options('*', cors());
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
