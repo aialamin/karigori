@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { SlidersHorizontal, X, Search, ChevronDown, CheckCircle2 } from 'lucide-react';
-import { CATEGORIES, DHAKA_AREAS, getCategoryInfo } from '../constants.js';
+import { getCategoryInfo, BANGLADESH_LOCATIONS } from '../constants.js';
+import { useConfig } from '../context/ConfigContext.jsx';
 import { CategoryIcon } from '../components/CategoryIcon.jsx';
 import WorkerCard from '../components/WorkerCard.jsx';
 import { Toggle } from '../components/ui.jsx';
@@ -16,6 +17,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function Browse() {
+  const { allCategories, allAreas } = useConfig();
   const { category: catParam } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -104,7 +106,7 @@ export default function Browse() {
             {selectedCat === '' && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
             All Categories
           </button>
-          {CATEGORIES.map((c) => (
+          {allCategories.map((c) => (
             <button
               key={c.key}
               onClick={() => setSelectedCat(selectedCat === c.key ? '' : c.key)}
@@ -128,8 +130,12 @@ export default function Browse() {
             value={selectedArea}
             onChange={(e) => setSelectedArea(e.target.value)}
           >
-            <option value="">All areas</option>
-            {DHAKA_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+            <option value="">All areas in Bangladesh</option>
+            {Object.entries(BANGLADESH_LOCATIONS).map(([div, areas]) => (
+              <optgroup key={div} label={div}>
+                {areas.map((a) => <option key={a} value={a}>{a}</option>)}
+              </optgroup>
+            ))}
           </select>
           <ChevronDown className="w-4 h-4 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>

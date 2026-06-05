@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, Save, CheckCircle2, RefreshCw, MapPin, Star, Phone, Upload, CreditCard, FileText, X, ZoomIn, Languages as LangIcon, MessageSquare, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { DHAKA_AREAS, getCategoryInfo } from '../constants.js';
+import { getCategoryInfo } from '../constants.js';
+import { useConfig } from '../context/ConfigContext.jsx';
 import { CategoryIcon } from '../components/CategoryIcon.jsx';
 import { FloatInput, FloatTextarea, Toggle, Alert, Spinner } from '../components/ui.jsx';
 import { VerificationProgress } from '../components/VerificationBadge.jsx';
@@ -334,7 +335,9 @@ const STATUS = {
 
 export default function WorkerDashboard() {
   const { user, workerProfile, token, updateWorkerProfile } = useAuth();
+  const { allAreas } = useConfig();
   const fileRef = useRef(null);
+  const [areaSearch, setAreaSearch] = useState('');
 
   const [wp, setWp]                   = useState(workerProfile);
   const [saving, setSaving]           = useState(false);
@@ -557,8 +560,11 @@ export default function WorkerDashboard() {
               <MapPin className="w-4 h-4 text-brand-600 shrink-0" /> Service Areas
               <span className="text-xs font-normal text-gray-400">({selectedAreas.length} selected)</span>
             </h3>
+            <input type="text" value={areaSearch} onChange={(e) => setAreaSearch(e.target.value)}
+              placeholder="Search areas…"
+              className="w-full mb-2 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-brand-400 transition-colors placeholder-gray-400" />
             <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-1 scrollbar-hide">
-              {DHAKA_AREAS.map((a) => (
+              {allAreas.filter((a) => !areaSearch || a.toLowerCase().includes(areaSearch.toLowerCase())).map((a) => (
                 <button key={a} type="button" onClick={() => toggleArea(a)}
                   className={`text-xs px-2.5 py-1.5 rounded-full border font-medium transition-all
                     ${selectedAreas.includes(a) ? 'bg-brand-600 text-white border-brand-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-brand-300 hover:text-brand-600'}`}>

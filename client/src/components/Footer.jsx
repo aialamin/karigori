@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Wrench, ShieldCheck } from 'lucide-react';
+import { Wrench, ShieldCheck, FileText, Lock } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -23,21 +23,28 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Links */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-10 gap-y-2 text-sm">
+          {/* Links grid */}
+          <div className="grid grid-cols-2 gap-x-10 gap-y-2 text-sm">
+            {/* Platform */}
             <div className="space-y-2">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">প্ল্যাটফর্ম</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 font-bn">প্ল্যাটফর্ম</p>
               <Link to="/browse"   className="block hover:text-white transition-colors font-bn">ব্রাউজ করুন</Link>
               <Link to="/register" className="block hover:text-white transition-colors font-bn">রেজিস্টার করুন</Link>
               <Link to="/login"    className="block hover:text-white transition-colors font-bn">সাইন ইন</Link>
             </div>
+
+            {/* Legal */}
             <div className="space-y-2">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">তথ্য</p>
-              <Link to="/disclaimer" className="block hover:text-white transition-colors font-bn flex items-center gap-1.5">
-                <ShieldCheck className="w-3 h-3 shrink-0" /> ডিসক্লেইমার
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 font-bn">নীতিমালা</p>
+              <Link to="/disclaimer" className="flex items-center gap-1.5 hover:text-white transition-colors font-bn">
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> ডিসক্লেইমার
               </Link>
-              <a href="/disclaimer" className="block hover:text-white transition-colors font-bn">শর্তাবলী</a>
-              <a href="/disclaimer" className="block hover:text-white transition-colors font-bn">প্রাইভেসি পলিসি</a>
+              <Link to="/terms"      className="flex items-center gap-1.5 hover:text-white transition-colors font-bn">
+                <FileText className="w-3.5 h-3.5 shrink-0" /> শর্তাবলী
+              </Link>
+              <Link to="/privacy"    className="flex items-center gap-1.5 hover:text-white transition-colors font-bn">
+                <Lock className="w-3.5 h-3.5 shrink-0" /> প্রাইভেসি পলিসি
+              </Link>
             </div>
           </div>
         </div>

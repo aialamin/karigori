@@ -6,7 +6,7 @@ import {
   Phone, Mail, Lock, FileText, CreditCard, X, Image as ImageIcon,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { CATEGORIES, DHAKA_AREAS } from '../constants.js';
+import { useConfig } from '../context/ConfigContext.jsx';
 import { CategoryIcon } from '../components/CategoryIcon.jsx';
 import { FloatInput, FloatTextarea, Alert, Spinner, FieldError } from '../components/ui.jsx';
 
@@ -88,9 +88,11 @@ function MultiDocUpload({ files, onAdd, onRemove }) {
 function WorkerRegister() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { allCategories, allAreas } = useConfig();
   const fileRef   = useRef(null);
 
   const [step, setStep]         = useState(1);
+  const [areaSearch, setAreaSearch] = useState('');
   const [showPass, setShow]     = useState(false);
   const [submitting, setSub]    = useState(false);
   const [errors, setErrors]     = useState({});
@@ -242,7 +244,7 @@ function WorkerRegister() {
           <div>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Your Trade *</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {CATEGORIES.map((c) => (
+              {allCategories.map((c) => (
                 <button key={c.key} type="button"
                   onClick={() => { setProf((f) => ({ ...f, category: c.key })); setErrors((e) => ({ ...e, category: '' })); }}
                   className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all
@@ -261,8 +263,13 @@ function WorkerRegister() {
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
               Service Areas * <span className="font-normal text-gray-400">({selectedAreas.length} selected)</span>
             </p>
+            <input
+              type="text" value={areaSearch} onChange={(e) => setAreaSearch(e.target.value)}
+              placeholder="Search areas…"
+              className="w-full mb-1.5 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-brand-400 transition-colors placeholder-gray-400"
+            />
             <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 border-2 border-gray-200 rounded-xl bg-gray-50 scrollbar-hide">
-              {DHAKA_AREAS.map((a) => (
+              {allAreas.filter((a) => !areaSearch || a.toLowerCase().includes(areaSearch.toLowerCase())).map((a) => (
                 <button key={a} type="button" onClick={() => toggleArea(a)}
                   className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-all
                     ${selectedAreas.includes(a) ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'}`}>
@@ -398,6 +405,7 @@ function WorkerRegister() {
 function ClientRegister() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { allAreas } = useConfig();
   const [showPass, setShow] = useState(false);
   const [submitting, setSub] = useState(false);
   const [errors, setErrors]  = useState({});
@@ -439,11 +447,11 @@ function ClientRegister() {
         right={<button type="button" onClick={() => setShow(!showPass)} className="p-1 text-gray-400 hover:text-gray-600">{showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>}
       />
       <div>
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Your Area in Dhaka</p>
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Your Area / District</p>
         <select value={form.area} onChange={set('area')}
           className="w-full px-3 py-3 text-sm border-2 border-gray-200 rounded-xl bg-white text-gray-700 focus:outline-none focus:border-brand-500 transition-colors appearance-none">
           <option value="">Any area (optional)</option>
-          {DHAKA_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+          {allAreas.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
       {errors.submit && <Alert type="error">{errors.submit}</Alert>}

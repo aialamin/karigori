@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, ArrowRight, Users, LayoutGrid, MapPin, ShieldCheck,
@@ -266,7 +267,7 @@ export default function Home() {
             <p className="text-sm text-amber-800 leading-relaxed font-bn">
               <strong>গুরুত্বপূর্ণ:</strong> যাচাইকরণ সম্পূর্ণ নিরাপত্তার নিশ্চয়তা দেয় না।
               সার্ভিস গ্রহণের আগে নিজে যাচাই করুন।{' '}
-              <a href="/disclaimer" className="underline font-semibold hover:text-amber-900">সম্পূর্ণ নীতিমালা পড়ুন →</a>
+              <Link to="/disclaimer" className="underline font-semibold hover:text-amber-900">সম্পূর্ণ নীতিমালা পড়ুন →</Link>
             </p>
           </div>
         </div>

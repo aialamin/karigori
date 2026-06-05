@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Wrench, LogOut, User, ShieldCheck, LayoutDashboard,
-  ChevronDown, Menu, X,
+  ChevronDown, Menu, X, FileText, Lock, Shield,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -114,20 +114,43 @@ export default function Navbar() {
 
         {/* Mobile drawer */}
         {mobileOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-4 pb-4 pt-3 space-y-1">
-            {NAV_LINKS.map((l) => (
-              <Link key={l.to} to={l.to} onClick={() => setMobile(false)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors font-bn
-                  ${active(l.to) ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                {l.label}
-              </Link>
-            ))}
-            {!user && (
-              <Link to="/login" onClick={() => setMobile(false)}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors font-bn">
-                সাইন ইন
-              </Link>
-            )}
+          <div className="md:hidden border-t border-gray-100 bg-white px-4 pb-5 pt-3">
+            {/* Main nav */}
+            <div className="space-y-1 mb-4">
+              {NAV_LINKS.map((l) => (
+                <Link key={l.to} to={l.to} onClick={() => setMobile(false)}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors font-bn
+                    ${active(l.to) ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                  {l.label}
+                </Link>
+              ))}
+              {!user && (
+                <Link to="/login" onClick={() => setMobile(false)}
+                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors font-bn">
+                  সাইন ইন
+                </Link>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-100 pt-3 mb-1">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-2 font-bn">তথ্য ও নীতিমালা</p>
+            </div>
+
+            {/* Info links */}
+            <div className="space-y-1">
+              {[
+                { to: '/disclaimer', icon: Shield,   label: 'ডিসক্লেইমার' },
+                { to: '/terms',      icon: FileText, label: 'শর্তাবলী' },
+                { to: '/privacy',    icon: Lock,     label: 'প্রাইভেসি পলিসি' },
+              ].map((l) => (
+                <Link key={l.label} to={l.to} onClick={() => setMobile(false)}
+                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors font-bn">
+                  <l.icon className="w-4 h-4 text-gray-400 shrink-0" />
+                  {l.label}
+                </Link>
+              ))}
+            </div>
           </div>
         )}
       </nav>

@@ -14,7 +14,7 @@ const workerSchema = new mongoose.Schema({
   name:          { type: String, required: true },
   phone:         { type: String, required: true },
   email:         { type: String, default: '' },
-  category:      { type: String, required: true, enum: ['plumber','electrician','cleaner','bua','painter','ac_repair','carpenter','gas_fitter'] },
+  category:      { type: String, required: true },   // no enum — supports custom admin-added categories
   areas:         [{ type: String }],
   rating:        { type: Number, default: 0, min: 0, max: 5 },
   reviewCount:   { type: Number, default: 0 },

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { ConfigProvider } from './context/ConfigContext.jsx';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -15,6 +16,8 @@ const WorkerDashboard = lazy(() => import('./pages/WorkerDashboard.jsx'));
 const AdminDashboard  = lazy(() => import('./pages/AdminDashboard.jsx'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard.jsx'));
 const Disclaimer      = lazy(() => import('./pages/Disclaimer.jsx'));
+const Privacy         = lazy(() => import('./pages/Privacy.jsx'));
+const Terms           = lazy(() => import('./pages/Terms.jsx'));
 
 function PageLoader() {
   return (
@@ -27,6 +30,7 @@ function PageLoader() {
 export default function App() {
   return (
     <AuthProvider>
+    <ConfigProvider>
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <main className="flex-1 min-w-0">
@@ -39,6 +43,8 @@ export default function App() {
               <Route path="/login"     element={<Login />} />
               <Route path="/register"  element={<Register />} />
               <Route path="/disclaimer" element={<Disclaimer />} />
+              <Route path="/privacy"    element={<Privacy />} />
+              <Route path="/terms"      element={<Terms />} />
 
               <Route path="/dashboard" element={
                 <ProtectedRoute role="worker"><WorkerDashboard /></ProtectedRoute>
@@ -54,6 +60,7 @@ export default function App() {
         </main>
         <Footer />
       </div>
+    </ConfigProvider>
     </AuthProvider>
   );
 }

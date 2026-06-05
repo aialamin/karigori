@@ -8,6 +8,7 @@ import workerRoutes  from './routes/workers.js';
 import authRoutes    from './routes/auth.js';
 import adminRoutes   from './routes/admin.js';
 import profileRoutes from './routes/profile.js';
+import configRoutes  from './routes/config.js';
 
 dotenv.config();
 
@@ -60,6 +61,7 @@ app.use('/api/workers',  workerRoutes);
 app.use('/api/auth',     authRoutes);
 app.use('/api/admin',    adminRoutes);
 app.use('/api/profile',  profileRoutes);
+app.use('/api/config',   configRoutes);
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 
 mongoose

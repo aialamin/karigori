@@ -61,13 +61,20 @@ router.post('/register', async (req, res) => {
   }
 });
 
-/* ── Login ────────────────────────────────────────────────────────── */
+/* ── Login (email OR phone) ───────────────────────────────────────── */
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const { identifier, password } = req.body;
+    if (!identifier?.trim() || !password)
+      return res.status(400).json({ message: 'Please enter your email/phone and password.' });
+
+    const isEmail = identifier.includes('@');
+    const user = isEmail
+      ? await User.findOne({ email: identifier.trim().toLowerCase() })
+      : await User.findOne({ phone: identifier.trim() });
+
     if (!user || !(await user.comparePassword(password)))
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: 'Incorrect email/phone or password.' });
 
     let workerProfile = null;
     if (user.role === 'worker') workerProfile = await Worker.findOne({ userId: user._id });

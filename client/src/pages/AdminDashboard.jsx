@@ -457,6 +457,129 @@ function ClientRow({ client }) {
   );
 }
 
+/* ────── Settings tab — category & area manager ────── */
+function SettingsPanel({ token }) {
+  const [extraCategories, setExtraCats] = useState([]);
+  const [extraAreas,      setExtraAreas] = useState([]);
+  const [catForm, setCatForm] = useState({ key: '', label: '', labelBn: '', color: '#006A4E', bg: '#e6f4ef' });
+  const [areaInput, setAreaInput] = useState('');
+  const [saving, setSaving] = useState('');
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    fetch('/api/config')
+      .then((r) => r.json())
+      .then((d) => { setExtraCats(d.extraCategories || []); setExtraAreas(d.extraAreas || []); })
+      .catch(() => {});
+  }, []);
+
+  const auth = (url, opts = {}) =>
+    fetch(url, { headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json', ...opts.headers }, ...opts })
+      .then((r) => r.json());
+
+  async function addCategory() {
+    if (!catForm.key.trim() || !catForm.label.trim()) return;
+    setSaving('cat');
+    const d = await auth('/api/config/categories', { method: 'POST', body: JSON.stringify(catForm) });
+    if (d.extraCategories) { setExtraCats(d.extraCategories); setCatForm({ key: '', label: '', labelBn: '', color: '#006A4E', bg: '#e6f4ef' }); setMsg('Category added!'); }
+    setSaving(''); setTimeout(() => setMsg(''), 2500);
+  }
+  async function deleteCategory(key) {
+    const d = await auth(`/api/config/categories/${key}`, { method: 'DELETE' });
+    if (d.extraCategories) setExtraCats(d.extraCategories);
+  }
+  async function addArea() {
+    if (!areaInput.trim()) return;
+    setSaving('area');
+    const d = await auth('/api/config/areas', { method: 'POST', body: JSON.stringify({ area: areaInput.trim() }) });
+    if (d.extraAreas) { setExtraAreas(d.extraAreas); setAreaInput(''); setMsg('Area added!'); }
+    setSaving(''); setTimeout(() => setMsg(''), 2500);
+  }
+  async function deleteArea(area) {
+    const d = await auth('/api/config/areas', { method: 'DELETE', body: JSON.stringify({ area }) });
+    if (d.extraAreas) setExtraAreas(d.extraAreas);
+  }
+
+  return (
+    <div className="space-y-6">
+      {msg && <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 text-sm text-emerald-700 font-semibold">{msg}</div>}
+
+      {/* ── Categories ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <h3 className="font-bold text-gray-900 mb-4">Add Custom Category</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+          <input value={catForm.key} onChange={(e) => setCatForm((f) => ({ ...f, key: e.target.value.toLowerCase().replace(/\s+/g, '_') }))}
+            placeholder="key (e.g. mechanic)" className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors" />
+          <input value={catForm.label} onChange={(e) => setCatForm((f) => ({ ...f, label: e.target.value }))}
+            placeholder="Label (English)" className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors" />
+          <input value={catForm.labelBn} onChange={(e) => setCatForm((f) => ({ ...f, labelBn: e.target.value }))}
+            placeholder="বাংলা নাম" className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors font-bn" />
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500 shrink-0">Color:</label>
+            <input type="color" value={catForm.color} onChange={(e) => setCatForm((f) => ({ ...f, color: e.target.value }))}
+              className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer" />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500 shrink-0">BG:</label>
+            <input type="color" value={catForm.bg} onChange={(e) => setCatForm((f) => ({ ...f, bg: e.target.value }))}
+              className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer" />
+          </div>
+          <button onClick={addCategory} disabled={saving === 'cat'}
+            className="bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-1">
+            {saving === 'cat' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Add
+          </button>
+        </div>
+
+        {extraCategories.length > 0 && (
+          <div>
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Custom Categories</p>
+            <div className="flex flex-wrap gap-2">
+              {extraCategories.map((c) => (
+                <div key={c.key} className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border" style={{ background: c.bg, color: c.color, borderColor: c.color + '44' }}>
+                  {c.label}
+                  <button onClick={() => deleteCategory(c.key)} className="hover:opacity-70 transition-opacity">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Areas ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <h3 className="font-bold text-gray-900 mb-4">Add Custom Area / District</h3>
+        <div className="flex gap-2 mb-3">
+          <input value={areaInput} onChange={(e) => setAreaInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addArea()}
+            placeholder="Area name (e.g. Kishoreganj)" className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors" />
+          <button onClick={addArea} disabled={saving === 'area'}
+            className="bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center gap-1">
+            {saving === 'area' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Add
+          </button>
+        </div>
+
+        {extraAreas.length > 0 && (
+          <div>
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Custom Areas ({extraAreas.length})</p>
+            <div className="flex flex-wrap gap-1.5">
+              {extraAreas.map((a) => (
+                <div key={a} className="flex items-center gap-1 text-xs font-medium bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full border border-gray-200">
+                  {a}
+                  <button onClick={() => deleteArea(a)} className="hover:text-red-500 transition-colors ml-0.5">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ────── Main Admin Dashboard ────── */
 export default function AdminDashboard() {
   const { token } = useAuth();
@@ -518,7 +641,7 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-400 mt-0.5">Review workers, manage accounts</p>
           </div>
           <div className="flex gap-2">
-            {['workers', 'clients'].map((v) => (
+            {['workers', 'clients', 'settings'].map((v) => (
               <button key={v} onClick={() => setView(v)}
                 className={`flex-1 sm:flex-none text-sm font-bold px-5 py-2 rounded-xl capitalize transition-all
                   ${view === v ? 'bg-gray-900 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
@@ -600,6 +723,9 @@ export default function AdminDashboard() {
             )}
           </>
         )}
+
+        {/* Settings */}
+        {view === 'settings' && <SettingsPanel token={token} />}
       </div>
     </div>
   );
