@@ -1,0 +1,20 @@
+{
+  "name": "কারিগরি — বাংলাদেশ লোকাল সার্ভিস",
+  "short_name": "কারিগরি",
+  "description": "বাংলাদেশের #১ লোকাল সার্ভিস প্ল্যাটফর্ম",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#006A4E",
+  "lang": "bn",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "categories": ["business", "utilities"],
+  "shortcuts": [
+    { "name": "প্লাম্বার খুঁজুন", "url": "/browse/plumber" },
+    { "name": "ইলেক্ট্রিশিয়ান খুঁজুন", "url": "/browse/electrician" },
+    { "name": "এসি মেকানিক খুঁজুন", "url": "/browse/ac_repair" }
+  ]
+}

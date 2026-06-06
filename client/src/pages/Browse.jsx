@@ -1,11 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, X, Search, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { SlidersHorizontal, X, Search, ChevronDown, CheckCircle2, LocateFixed, Loader2, MapPin, Navigation } from 'lucide-react';
 import { getCategoryInfo, BANGLADESH_LOCATIONS } from '../constants.js';
+import { expandLocation, getLocationGroups } from '../data/bangladesh.js';
+import { trackPageView, trackSearch } from '../hooks/useAnalytics.js';
+import { getSubcategoriesForCategory } from '../data/categories.js';
 import { useConfig } from '../context/ConfigContext.jsx';
+import SEOHead, { getCategorySEO } from '../components/SEOHead.jsx';
 import { CategoryIcon } from '../components/CategoryIcon.jsx';
 import WorkerCard from '../components/WorkerCard.jsx';
 import { Toggle } from '../components/ui.jsx';
+import { useUserLocation } from '../hooks/useUserLocation.js';
 
 const SORT_OPTIONS = [
   { value: 'default',    label: 'Best Match' },
@@ -22,7 +27,9 @@ export default function Browse() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const [workers, setWorkers]         = useState([]);
+  const userLoc = useUserLocation();
+
+  const [allWorkers, setAllWorkers]    = useState([]);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(null);
   const [selectedCat, setSelectedCat] = useState(catParam || '');
@@ -38,22 +45,40 @@ export default function Browse() {
   useEffect(() => { if (catParam) setSelectedCat(catParam); }, [catParam]);
   useEffect(() => { fetchWorkers(); }, [selectedCat, selectedArea, onlyAvailable, sort, searchQ]);
 
+  // Auto-apply detected location → area filter
+  useEffect(() => {
+    if (userLoc.area && !selectedArea) {
+      setSelectedArea(userLoc.area);
+    }
+  }, [userLoc.area]);
+
   async function fetchWorkers() {
     setLoading(true); setError(null);
     try {
       const p = new URLSearchParams();
-      if (selectedCat)  p.set('category', selectedCat);
-      if (selectedArea) p.set('area', selectedArea);
+      if (selectedCat)   p.set('category', selectedCat);
       if (onlyAvailable) p.set('available', 'true');
-      if (sort)         p.set('sort', sort);
-      if (searchQ)      p.set('q', searchQ);
+      if (sort)          p.set('sort', sort);
       p.set('limit', '60');
+
+      // Smart hierarchy expansion: "Rajshahi" → all Rajshahi upazilas
+      const effectiveQ = searchQ || selectedArea;
+      if (effectiveQ) {
+        const expanded = expandLocation(effectiveQ);
+        if (expanded.length > 1) {
+          // Multiple areas: send as comma-separated q search
+          p.set('q', expanded.slice(0, 20).join('|')); // regex OR
+        } else {
+          p.set('q', effectiveQ);
+        }
+      }
+
       const res = await fetch(`/api/workers?${p}`);
       if (!res.ok) throw new Error('Failed to load workers');
       const data = await res.json();
-      let results = data.workers;
-      if (onlyVerified) results = results.filter((w) => w.verified);
-      setWorkers(results);
+      setAllWorkers(data.workers);
+
+      if (searchQ) trackSearch();
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }
@@ -69,9 +94,11 @@ export default function Browse() {
     setSearchQ(localQ);
   }
 
+  const workers = onlyVerified ? allWorkers.filter((w) => w.verified) : allWorkers;
   const activeFilters = [selectedCat, selectedArea, onlyAvailable, onlyVerified, searchQ].filter(Boolean).length;
   const catInfo = selectedCat ? getCategoryInfo(selectedCat) : null;
   const sortLabel = SORT_OPTIONS.find((o) => o.value === sort)?.label;
+  const subcategories = selectedCat ? getSubcategoriesForCategory(selectedCat) : [];
 
   // ── Filter chips ──
   const chips = [
@@ -86,10 +113,10 @@ export default function Browse() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <span className="font-semibold text-gray-900 flex items-center gap-2 text-sm">
-          <SlidersHorizontal className="w-4 h-4 text-brand-600" /> Filters
+          <SlidersHorizontal className="w-4 h-4 text-trust-500" /> Filters
         </span>
         {activeFilters > 0 && (
-          <button onClick={clearFilters} className="text-xs text-brand-600 font-semibold hover:underline flex items-center gap-1">
+          <button onClick={clearFilters} className="text-xs text-trust-500 font-semibold hover:underline flex items-center gap-1">
             <X className="w-3 h-3" /> Clear all
           </button>
         )}
@@ -101,7 +128,7 @@ export default function Browse() {
         <div className="space-y-0.5">
           <button
             onClick={() => setSelectedCat('')}
-            className={`w-full text-left text-sm px-3 py-2 rounded-xl transition-all flex items-center gap-2 ${selectedCat === '' ? 'bg-brand-600 text-white font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
+            className={`w-full text-left text-sm px-3 py-2 rounded-xl transition-all flex items-center gap-2 ${selectedCat === '' ? 'bg-trust-500 text-white font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
           >
             {selectedCat === '' && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
             All Categories
@@ -126,14 +153,19 @@ export default function Browse() {
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Area in Dhaka</p>
         <div className="relative">
           <select
-            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-white text-gray-700 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all appearance-none pr-8 cursor-pointer"
+            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-white text-gray-700 focus:outline-none focus:border-trust-500 focus:ring-2 focus:ring-trust-100 transition-all appearance-none pr-8 cursor-pointer"
             value={selectedArea}
             onChange={(e) => setSelectedArea(e.target.value)}
           >
-            <option value="">All areas in Bangladesh</option>
-            {Object.entries(BANGLADESH_LOCATIONS).map(([div, areas]) => (
-              <optgroup key={div} label={div}>
-                {areas.map((a) => <option key={a} value={a}>{a}</option>)}
+            <option value="">All Bangladesh</option>
+            {getLocationGroups().map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((o) => (
+                  <option key={o.value} value={o.value}
+                    style={o.isDistrict ? { fontWeight: 700 } : {}}>
+                    {o.label}
+                  </option>
+                ))}
               </optgroup>
             ))}
           </select>
@@ -146,19 +178,43 @@ export default function Browse() {
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Filters</p>
         <div className="space-y-2">
           <Toggle checked={onlyAvailable} onChange={setOnlyAvailable} label="Available now" />
-          <Toggle checked={onlyVerified}  onChange={(v) => { setOnlyVerified(v); setTimeout(fetchWorkers, 0); }} label="Verified only" />
+          <Toggle checked={onlyVerified}  onChange={setOnlyVerified} label="Verified only" />
         </div>
       </div>
     </div>
   );
 
+  const seo = selectedCat
+    ? getCategorySEO(selectedCat, selectedArea)
+    : { title: `${selectedArea ? selectedArea + ' এ ' : ''}সব কারিগর — প্লাম্বার, ইলেক্ট্রিশিয়ান ও আরও`, canonical: '/browse' };
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEOHead {...seo} />
+
+      {/* ── Location banner ── */}
+      {userLoc.area && (
+        <div className="bg-trust-500 text-white py-2.5 px-4">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Navigation className="w-4 h-4 shrink-0 text-amber-300" />
+              <span>
+                {userLoc.method === 'gps' ? 'GPS থেকে সনাক্ত:' : 'আপনার এলাকা:'}{' '}
+                <strong className="text-amber-200">{userLoc.area}</strong> এর কারিগর দেখাচ্ছে
+              </span>
+            </div>
+            <button onClick={() => { userLoc.clear(); setSelectedArea(''); }}
+              className="flex items-center gap-1 text-xs text-white/70 hover:text-white transition-colors shrink-0">
+              <X className="w-3.5 h-3.5" /> Clear
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Header ── */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 space-y-3">
-          {/* Row 1: title + sort */}
+          {/* Row 1: title + sort + Near Me */}
           <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -166,10 +222,10 @@ export default function Browse() {
                   ? <span style={{ color: catInfo.color }}><CategoryIcon category={selectedCat} size={18} /></span>
                   : null
                 }
-                {catInfo ? catInfo.label : 'All Workers'}
+                {catInfo ? `${catInfo.label}${selectedArea ? ` — ${selectedArea}` : ''}` : 'সব কারিগর — বাংলাদেশ'}
               </h1>
               <p className="text-xs text-gray-400 mt-0.5">
-                {loading ? 'Searching…' : `${workers.length} professionals in Dhaka`}
+                {loading ? 'খোঁজা হচ্ছে…' : `${workers.length} জন কারিগর পাওয়া গেছে${selectedArea ? ` — ${selectedArea}` : ' — বাংলাদেশ'}`}
               </p>
             </div>
 
@@ -179,12 +235,31 @@ export default function Browse() {
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value)}
-                  className="text-sm border border-gray-200 rounded-xl pl-3 pr-8 py-2 bg-white text-gray-700 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 appearance-none cursor-pointer transition-all font-medium"
+                  className="text-sm border border-gray-200 rounded-xl pl-3 pr-8 py-2 bg-white text-gray-700 focus:outline-none focus:border-trust-500 focus:ring-2 focus:ring-trust-100 appearance-none cursor-pointer transition-all font-medium"
                 >
                   {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
                 <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
+
+              {/* Near Me button */}
+              <button
+                onClick={userLoc.area ? () => { userLoc.clear(); setSelectedArea(''); } : userLoc.detect}
+                disabled={userLoc.loading}
+                title={userLoc.area ? `Showing: ${userLoc.area} — Click to clear` : 'Find workers near me'}
+                className={`flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl transition-all
+                  ${userLoc.area
+                    ? 'bg-trust-500 text-white hover:bg-trust-600'
+                    : 'bg-gray-100 text-gray-700 hover:bg-trust-50 hover:text-trust-600 hover:border hover:border-trust-300'
+                  } disabled:opacity-60`}
+              >
+                {userLoc.loading
+                  ? <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  : userLoc.area
+                    ? <><Navigation className="w-4 h-4 shrink-0" /><span className="hidden sm:inline truncate max-w-[80px]">{userLoc.area}</span><X className="w-3.5 h-3.5 shrink-0" /></>
+                    : <><LocateFixed className="w-4 h-4 shrink-0" /><span className="hidden sm:inline">Near Me</span></>
+                }
+              </button>
 
               {/* Mobile filter btn */}
               <button
@@ -194,7 +269,7 @@ export default function Browse() {
                 <SlidersHorizontal className="w-4 h-4" />
                 Filters
                 {activeFilters > 0 && (
-                  <span className="bg-brand-600 text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center" style={{ width: 18, height: 18 }}>
+                  <span className="bg-trust-500 text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center" style={{ width: 18, height: 18 }}>
                     {activeFilters}
                   </span>
                 )}
@@ -204,7 +279,7 @@ export default function Browse() {
 
           {/* Row 2: search bar */}
           <form onSubmit={submitSearch} className="flex items-center gap-2">
-            <div className="flex-1 flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 gap-2 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100 transition-all">
+            <div className="flex-1 flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 gap-2 focus-within:border-trust-400 focus-within:ring-2 focus-within:ring-trust-100 transition-all">
               <Search className="w-4 h-4 text-gray-400 shrink-0" />
               <input
                 ref={searchRef}
@@ -220,7 +295,7 @@ export default function Browse() {
                 </button>
               )}
             </div>
-            <button type="submit" className="bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all">
+            <button type="submit" className="bg-trust-500 hover:bg-trust-600 active:scale-95 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all">
               Search
             </button>
           </form>
@@ -229,9 +304,9 @@ export default function Browse() {
           {chips.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               {chips.map((chip, i) => (
-                <span key={i} className="inline-flex items-center gap-1.5 text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200 px-2.5 py-1 rounded-full">
+                <span key={i} className="inline-flex items-center gap-1.5 text-xs font-semibold bg-trust-50 text-trust-600 border border-trust-200 px-2.5 py-1 rounded-full">
                   {chip.label}
-                  <button onClick={chip.onRemove} className="hover:text-brand-900 transition-colors">
+                  <button onClick={chip.onRemove} className="hover:text-navy-900 transition-colors">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
@@ -243,6 +318,27 @@ export default function Browse() {
           )}
         </div>
       </div>
+
+      {/* Subcategory service chips — shown when a category is selected */}
+      {subcategories.length > 0 && (
+        <div className="bg-gray-50 border-b border-gray-200 overflow-x-auto scrollbar-hide">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-2 flex-nowrap">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider shrink-0">সার্ভিস:</span>
+            {subcategories.map((sub) => (
+              sub.services.slice(0, 4).map((svc) => (
+                <button key={svc}
+                  onClick={() => { setSearchQ(svc); setLocalQ(svc); }}
+                  className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all whitespace-nowrap
+                    ${searchQ === svc
+                      ? 'bg-trust-500 text-white border-trust-500'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-trust-300 hover:text-trust-500'}`}>
+                  {svc}
+                </button>
+              ))
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex gap-6">
 
@@ -270,7 +366,7 @@ export default function Browse() {
               <div className="p-4 border-t border-gray-100">
                 <button
                   onClick={() => setSidebarOpen(false)}
-                  className="w-full bg-brand-600 text-white font-semibold py-3 rounded-xl"
+                  className="w-full bg-trust-500 text-white font-semibold py-3 rounded-xl"
                 >
                   Show {workers.length} Results
                 </button>
@@ -295,7 +391,7 @@ export default function Browse() {
                 <X className="w-7 h-7 text-red-400" />
               </div>
               <p className="text-gray-600 font-medium">{error}</p>
-              <button onClick={fetchWorkers} className="bg-brand-600 text-white text-sm font-semibold px-5 py-2 rounded-full">Retry</button>
+              <button onClick={fetchWorkers} className="bg-trust-500 text-white text-sm font-semibold px-5 py-2 rounded-full">Retry</button>
             </div>
           )}
 
@@ -304,7 +400,7 @@ export default function Browse() {
               <div className="text-5xl mb-2">🔍</div>
               <p className="text-gray-700 font-semibold">No workers found</p>
               <p className="text-gray-400 text-sm">Try changing your filters or search term</p>
-              <button onClick={clearFilters} className="mt-2 border border-gray-300 text-gray-700 text-sm font-semibold px-5 py-2 rounded-full hover:border-brand-600 hover:text-brand-600 transition-colors">
+              <button onClick={clearFilters} className="mt-2 border border-gray-300 text-gray-700 text-sm font-semibold px-5 py-2 rounded-full hover:border-trust-500 hover:text-trust-500 transition-colors">
                 Clear Filters
               </button>
             </div>

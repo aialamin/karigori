@@ -1,9 +1,11 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ConfigProvider } from './context/ConfigContext.jsx';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
+import BottomNav from './components/BottomNav.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 /* Code-split every page — only the active page's JS is loaded */
@@ -18,17 +20,19 @@ const ClientDashboard = lazy(() => import('./pages/ClientDashboard.jsx'));
 const Disclaimer      = lazy(() => import('./pages/Disclaimer.jsx'));
 const Privacy         = lazy(() => import('./pages/Privacy.jsx'));
 const Terms           = lazy(() => import('./pages/Terms.jsx'));
+const LocalLanding    = lazy(() => import('./pages/LocalLanding.jsx'));
 
 function PageLoader() {
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-8 h-8 border-4 border-brand-100 border-t-brand-600 rounded-full animate-spin" />
+      <div className="w-8 h-8 border-4 border-trust-100 border-t-trust-500 rounded-full animate-spin" />
     </div>
   );
 }
 
 export default function App() {
   return (
+    <HelmetProvider>
     <AuthProvider>
     <ConfigProvider>
       <div className="min-h-screen flex flex-col">
@@ -45,6 +49,8 @@ export default function App() {
               <Route path="/disclaimer" element={<Disclaimer />} />
               <Route path="/privacy"    element={<Privacy />} />
               <Route path="/terms"      element={<Terms />} />
+              {/* Local SEO landing pages — must be LAST to not shadow specific routes */}
+              <Route path="/:city/:service" element={<LocalLanding />} />
 
               <Route path="/dashboard" element={
                 <ProtectedRoute role="worker"><WorkerDashboard /></ProtectedRoute>
@@ -59,8 +65,10 @@ export default function App() {
           </Suspense>
         </main>
         <Footer />
+        <BottomNav />
       </div>
     </ConfigProvider>
     </AuthProvider>
+    </HelmetProvider>
   );
 }

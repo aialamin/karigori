@@ -6,11 +6,12 @@ const configSchema = new mongoose.Schema({
 
   /* Extra categories beyond the 8 built-ins */
   extraCategories: [{
-    key:     { type: String, required: true },
-    label:   { type: String, required: true },
-    labelBn: { type: String, default: '' },
-    color:   { type: String, default: '#006A4E' },
-    bg:      { type: String, default: '#e6f4ef' },
+    key:      { type: String, required: true },
+    label:    { type: String, required: true },
+    labelBn:  { type: String, default: '' },
+    color:    { type: String, default: '#006A4E' },
+    bg:       { type: String, default: '#e6f4ef' },
+    iconName: { type: String, default: 'Wrench' },  // Lucide icon component name
   }],
 
   /* Extra areas/districts beyond the Bangladesh defaults */

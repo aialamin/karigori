@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Users, CheckCircle2, Clock, XCircle, BarChart3, Check, X,
   RefreshCw, ChevronDown, ChevronUp, MapPin, Phone, BadgeCheck,
   CreditCard, FileText, Star, StickyNote, Calendar, Mail,
-  ShieldCheck, AlertCircle, ZoomIn, ShieldAlert, Upload,
-  Flag, AlertTriangle,
+  ShieldCheck, AlertCircle, ZoomIn, ShieldAlert, Upload, Download,
+  Flag, AlertTriangle, Eye, MousePointerClick, Search as SearchIcon, TrendingUp,
 } from 'lucide-react';
 import { getLevelInfo } from '../components/VerificationBadge.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getCategoryInfo } from '../constants.js';
-import { CategoryIcon } from '../components/CategoryIcon.jsx';
+import { CategoryIcon, ICON_OPTIONS } from '../components/CategoryIcon.jsx';
 
 /* ── Image lightbox ── */
 function Lightbox({ src, onClose }) {
@@ -457,14 +457,259 @@ function ClientRow({ client }) {
   );
 }
 
+/* ────── Analytics Panel ────── */
+function AnalyticsPanel({ token }) {
+  const [data, setData]     = useState(null);
+  const [loading, setLoad]  = useState(true);
+  const [period, setPeriod] = useState('today'); // today | monthly | yearly
+
+  useEffect(() => {
+    fetch('/api/analytics/summary', { headers: { Authorization: `Bearer ${token()}` } })
+      .then((r) => r.json()).then(setData).catch(() => {}).finally(() => setLoad(false));
+  }, []);
+
+  if (loading) return <div className="flex justify-center py-16"><RefreshCw className="w-6 h-6 text-gray-300 animate-spin" /></div>;
+  if (!data)   return <p className="text-center py-12 text-gray-400">Analytics data unavailable</p>;
+
+  const d = period === 'today' ? data.today : period === 'monthly' ? data.monthly : data.yearly;
+
+  const STAT_COLS = [
+    { icon: Eye,             label: 'Page Views',      val: d?.pageViews    || 0, color: 'text-blue-600 bg-blue-50' },
+    { icon: Users,           label: 'Unique Visitors', val: d?.uniqueVisitors || 0, color: 'text-purple-600 bg-purple-50' },
+    { icon: MousePointerClick,label: 'Phone Clicks',  val: d?.phoneClicks  || 0, color: 'text-emerald-600 bg-emerald-50' },
+    { icon: SearchIcon,      label: 'Searches',        val: d?.searches     || 0, color: 'text-amber-600 bg-amber-50' },
+    { icon: BarChart3,       label: 'Worker Views',    val: d?.workerViews  || 0, color: 'text-brand-600 bg-brand-50' },
+  ];
+
+  return (
+    <div className="space-y-5">
+      {/* Period tabs */}
+      <div className="flex gap-2">
+        {[['today','আজকে'], ['monthly','৩০ দিন'], ['yearly','১ বছর']].map(([k, lbl]) => (
+          <button key={k} onClick={() => setPeriod(k)}
+            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all font-bn ${period === k ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            {lbl}
+          </button>
+        ))}
+      </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        {STAT_COLS.map(({ icon: Icon, label, val, color }) => (
+          <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2 ${color}`}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <div className="text-2xl font-extrabold text-gray-900">{val.toLocaleString()}</div>
+            <div className="text-[11px] text-gray-400 mt-0.5">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 30-day chart (simple bars) */}
+      {data.chartData?.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h3 className="font-bold text-gray-900 mb-4 text-sm">Page Views — Last 30 Days</h3>
+          <div className="flex items-end gap-1 h-32 overflow-x-auto scrollbar-hide">
+            {data.chartData.map((d) => {
+              const max = Math.max(...data.chartData.map((x) => x.pageViews), 1);
+              const pct = (d.pageViews / max) * 100;
+              return (
+                <div key={d.date} className="flex flex-col items-center gap-1 flex-1 min-w-[20px]"
+                  title={`${d.date}: ${d.pageViews} views`}>
+                  <div className="w-full bg-brand-500 rounded-t-sm transition-all"
+                    style={{ height: `${Math.max(pct, 2)}%` }} />
+                  <span className="text-[8px] text-gray-400 rotate-45 origin-left hidden sm:block">
+                    {d.date.slice(5)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex gap-4 mt-3 text-xs text-gray-500">
+            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-brand-500 rounded-sm inline-block" /> Page Views</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-400 rounded-sm inline-block" /> Phone Clicks</span>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 font-bn">
+        <strong>নোট:</strong> প্রতিটি পেজ ভিজিট ও ফোন ক্লিক স্বয়ংক্রিয়ভাবে ট্র্যাক হয়। আইপি অ্যাড্রেস থেকে ইউনিক ভিজিটর গণনা করা হয়।
+      </div>
+    </div>
+  );
+}
+
+/* ────── Excel Bulk Upload ────── */
+function ExcelUpload({ token }) {
+  const fileRef = useRef(null);
+  const [file,     setFile]    = useState(null);
+  const [preview,  setPreview] = useState(null);
+  const [result,   setResult]  = useState(null);
+  const [loading,  setLoad]    = useState(false);
+  const [error,    setError]   = useState('');
+
+  async function handleFile(e) {
+    const f = e.target.files[0]; if (!f) return;
+    setFile(f); setPreview(null); setResult(null); setError('');
+    setLoad(true);
+    try {
+      const fd = new FormData(); fd.append('file', f); fd.append('preview', 'true');
+      const res = await fetch('/api/bulk/workers', {
+        method: 'POST', headers: { Authorization: `Bearer ${token()}` }, body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.message); return; }
+      setPreview(data);
+    } catch { setError('Upload failed'); }
+    finally { setLoad(false); }
+  }
+
+  async function handleInsert() {
+    if (!file) return;
+    setLoad(true); setError('');
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const res = await fetch('/api/bulk/workers', {
+        method: 'POST', headers: { Authorization: `Bearer ${token()}` }, body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.message); return; }
+      setResult(data); setPreview(null); setFile(null);
+    } catch { setError('Insert failed'); }
+    finally { setLoad(false); }
+  }
+
+  async function downloadTemplate() {
+    const res = await fetch('/api/bulk/template', { headers: { Authorization: `Bearer ${token()}` } });
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a'); a.href = url; a.download = 'karigori_workers_template.xlsx'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Instructions */}
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
+        <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+          <FileText className="w-4 h-4" /> Excel Bulk Worker Upload
+        </h3>
+        <p className="text-sm text-blue-800 mb-3 font-bn">
+          এক্সেল ফাইলে একাধিক কারিগরের তথ্য একসাথে আপলোড করুন।
+          প্রথমে টেমপ্লেট ডাউনলোড করুন, তথ্য পূরণ করুন, তারপর আপলোড করুন।
+        </p>
+        <button onClick={downloadTemplate}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors">
+          <Download className="w-4 h-4" /> Download Template (.xlsx)
+        </button>
+      </div>
+
+      {/* Columns guide */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Required Columns</p>
+        <div className="flex flex-wrap gap-2">
+          {['Name *','Phone *','Email','Category *','Areas *','Experience','HourlyRate','Bio','Languages'].map((col) => (
+            <span key={col} className={`text-xs px-2.5 py-1 rounded-full font-semibold ${col.includes('*') ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-gray-100 text-gray-600'}`}>
+              {col}
+            </span>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 mt-2">Categories: plumber | electrician | cleaner | bua | painter | ac_repair | carpenter | gas_fitter</p>
+        <p className="text-xs text-gray-400">Areas: comma-separated, e.g. "Gazipur Sadar, Tongi"</p>
+      </div>
+
+      {/* Upload area */}
+      <div
+        onClick={() => fileRef.current?.click()}
+        className="border-2 border-dashed border-gray-300 hover:border-brand-400 rounded-2xl p-8 text-center cursor-pointer transition-colors bg-gray-50 hover:bg-brand-50">
+        <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+        <p className="font-semibold text-gray-600">{file ? file.name : 'Click to upload Excel file'}</p>
+        <p className="text-xs text-gray-400 mt-1">.xlsx, .xls, .csv — max 20MB</p>
+        <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleFile} className="hidden" />
+      </div>
+
+      {loading && <div className="flex justify-center py-4"><RefreshCw className="w-5 h-5 text-brand-600 animate-spin" /></div>}
+      {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600">{error}</div>}
+
+      {/* Preview */}
+      {preview && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-gray-900">Preview</h3>
+            <div className="flex gap-3 text-sm">
+              <span className="text-emerald-600 font-semibold">{preview.valid} valid</span>
+              {preview.errors.length > 0 && <span className="text-red-500 font-semibold">{preview.errors.length} errors</span>}
+            </div>
+          </div>
+
+          {preview.errors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700 space-y-1 max-h-32 overflow-y-auto">
+              {preview.errors.map((e, i) => <p key={i}>{e}</p>)}
+            </div>
+          )}
+
+          {preview.sample?.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-gray-50">
+                    {['Name','Phone','Category','Areas','Experience'].map((h) => (
+                      <th key={h} className="text-left px-3 py-2 font-bold text-gray-500 whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {preview.sample.map((w, i) => (
+                    <tr key={i}>
+                      <td className="px-3 py-2 font-medium text-gray-900">{w.name}</td>
+                      <td className="px-3 py-2 text-gray-600">{w.phone}</td>
+                      <td className="px-3 py-2 text-gray-600">{w.category}</td>
+                      <td className="px-3 py-2 text-gray-600 max-w-[120px] truncate">{w.areas?.join(', ')}</td>
+                      <td className="px-3 py-2 text-gray-600">{w.experience}yr</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {preview.valid > preview.sample.length && (
+                <p className="text-xs text-gray-400 mt-2 px-3">…and {preview.valid - preview.sample.length} more rows</p>
+              )}
+            </div>
+          )}
+
+          <button onClick={handleInsert} disabled={loading || preview.valid === 0}
+            className="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all">
+            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            Import {preview.valid} Workers
+          </button>
+        </div>
+      )}
+
+      {/* Result */}
+      {result && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center">
+          <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+          <p className="font-bold text-emerald-800 text-lg">{result.inserted} workers imported!</p>
+          {result.errors?.length > 0 && <p className="text-sm text-amber-600 mt-1">{result.errors.length} rows had errors</p>}
+          <button onClick={() => { setResult(null); setFile(null); }} className="mt-3 text-sm text-brand-600 font-semibold hover:underline">Upload another file</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ────── Settings tab — category & area manager ────── */
 function SettingsPanel({ token }) {
   const [extraCategories, setExtraCats] = useState([]);
   const [extraAreas,      setExtraAreas] = useState([]);
-  const [catForm, setCatForm] = useState({ key: '', label: '', labelBn: '', color: '#006A4E', bg: '#e6f4ef' });
-  const [areaInput, setAreaInput] = useState('');
-  const [saving, setSaving] = useState('');
-  const [msg, setMsg] = useState('');
+  const [catForm, setCatForm] = useState({
+    key: '', label: '', labelBn: '', color: '#006A4E', bg: '#e6f4ef', iconName: 'Wrench',
+  });
+  const [iconSearch,   setIconSearch]   = useState('');
+  const [areaInput,    setAreaInput]    = useState('');
+  const [areaSearch,   setAreaSearch]   = useState('');
+  const [saving,       setSaving]       = useState('');
+  const [msg,          setMsg]          = useState('');
 
   useEffect(() => {
     fetch('/api/config')
@@ -481,8 +726,13 @@ function SettingsPanel({ token }) {
     if (!catForm.key.trim() || !catForm.label.trim()) return;
     setSaving('cat');
     const d = await auth('/api/config/categories', { method: 'POST', body: JSON.stringify(catForm) });
-    if (d.extraCategories) { setExtraCats(d.extraCategories); setCatForm({ key: '', label: '', labelBn: '', color: '#006A4E', bg: '#e6f4ef' }); setMsg('Category added!'); }
-    setSaving(''); setTimeout(() => setMsg(''), 2500);
+    if (d.extraCategories) {
+      setExtraCats(d.extraCategories);
+      setCatForm({ key: '', label: '', labelBn: '', color: '#006A4E', bg: '#e6f4ef', iconName: 'Wrench' });
+      setIconSearch('');
+      setMsg('✓ Category added!');
+    }
+    setSaving(''); setTimeout(() => setMsg(''), 3000);
   }
   async function deleteCategory(key) {
     const d = await auth(`/api/config/categories/${key}`, { method: 'DELETE' });
@@ -492,82 +742,188 @@ function SettingsPanel({ token }) {
     if (!areaInput.trim()) return;
     setSaving('area');
     const d = await auth('/api/config/areas', { method: 'POST', body: JSON.stringify({ area: areaInput.trim() }) });
-    if (d.extraAreas) { setExtraAreas(d.extraAreas); setAreaInput(''); setMsg('Area added!'); }
-    setSaving(''); setTimeout(() => setMsg(''), 2500);
+    if (d.extraAreas) { setExtraAreas(d.extraAreas); setAreaInput(''); setMsg('✓ Area added!'); }
+    setSaving(''); setTimeout(() => setMsg(''), 3000);
   }
   async function deleteArea(area) {
     const d = await auth('/api/config/areas', { method: 'DELETE', body: JSON.stringify({ area }) });
     if (d.extraAreas) setExtraAreas(d.extraAreas);
   }
 
+  const filteredIcons = iconSearch
+    ? ICON_OPTIONS.filter((i) => i.name.toLowerCase().includes(iconSearch.toLowerCase()))
+    : ICON_OPTIONS;
+
+  const filteredAreas = areaSearch
+    ? extraAreas.filter((a) => a.toLowerCase().includes(areaSearch.toLowerCase()))
+    : extraAreas;
+
+  const selectedIconEntry = ICON_OPTIONS.find((i) => i.name === catForm.iconName) || ICON_OPTIONS[0];
+  const SelectedIcon = selectedIconEntry.Icon;
+
   return (
     <div className="space-y-6">
-      {msg && <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 text-sm text-emerald-700 font-semibold">{msg}</div>}
+      {msg && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 text-sm text-emerald-700 font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" /> {msg}
+        </div>
+      )}
 
-      {/* ── Categories ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h3 className="font-bold text-gray-900 mb-4">Add Custom Category</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
-          <input value={catForm.key} onChange={(e) => setCatForm((f) => ({ ...f, key: e.target.value.toLowerCase().replace(/\s+/g, '_') }))}
-            placeholder="key (e.g. mechanic)" className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors" />
-          <input value={catForm.label} onChange={(e) => setCatForm((f) => ({ ...f, label: e.target.value }))}
-            placeholder="Label (English)" className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors" />
-          <input value={catForm.labelBn} onChange={(e) => setCatForm((f) => ({ ...f, labelBn: e.target.value }))}
-            placeholder="বাংলা নাম" className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors font-bn" />
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-gray-500 shrink-0">Color:</label>
-            <input type="color" value={catForm.color} onChange={(e) => setCatForm((f) => ({ ...f, color: e.target.value }))}
-              className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer" />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-gray-500 shrink-0">BG:</label>
-            <input type="color" value={catForm.bg} onChange={(e) => setCatForm((f) => ({ ...f, bg: e.target.value }))}
-              className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer" />
-          </div>
-          <button onClick={addCategory} disabled={saving === 'cat'}
-            className="bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-1">
-            {saving === 'cat' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Add
-          </button>
+      {/* ══ Add Custom Category ══ */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+          <LayoutGrid className="w-4 h-4 text-brand-600" /> Add Custom Category
+        </h3>
+
+        {/* Text fields */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <input value={catForm.key}
+            onChange={(e) => setCatForm((f) => ({ ...f, key: e.target.value.toLowerCase().replace(/\s+/g, '_') }))}
+            placeholder="key (e.g. mechanic)"
+            className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors col-span-1" />
+          <input value={catForm.label}
+            onChange={(e) => setCatForm((f) => ({ ...f, label: e.target.value }))}
+            placeholder="Label (English)"
+            className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors" />
+          <input value={catForm.labelBn}
+            onChange={(e) => setCatForm((f) => ({ ...f, labelBn: e.target.value }))}
+            placeholder="বাংলা নাম"
+            className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors font-bn" />
         </div>
 
+        {/* Colors */}
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-gray-500 shrink-0">Icon Color</label>
+            <input type="color" value={catForm.color}
+              onChange={(e) => setCatForm((f) => ({ ...f, color: e.target.value }))}
+              className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer" />
+            <span className="text-xs text-gray-400 font-mono">{catForm.color}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-gray-500 shrink-0">Background</label>
+            <input type="color" value={catForm.bg}
+              onChange={(e) => setCatForm((f) => ({ ...f, bg: e.target.value }))}
+              className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer" />
+            <span className="text-xs text-gray-400 font-mono">{catForm.bg}</span>
+          </div>
+
+          {/* Live preview */}
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-xs font-semibold text-gray-500">Preview:</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border"
+              style={{ background: catForm.bg, color: catForm.color, borderColor: catForm.color + '44' }}>
+              <SelectedIcon size={13} />
+              {catForm.label || 'Category'}
+            </span>
+          </div>
+        </div>
+
+        {/* Icon picker */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Icon</label>
+            <span className="text-xs text-brand-600 font-semibold">Selected: {catForm.iconName}</span>
+          </div>
+
+          {/* Search icons */}
+          <input value={iconSearch} onChange={(e) => setIconSearch(e.target.value)}
+            placeholder="Search icon name… (e.g. Hammer, Car, Leaf)"
+            className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 transition-colors mb-2" />
+
+          {/* Icon grid */}
+          <div className="grid grid-cols-8 sm:grid-cols-12 gap-1.5 max-h-48 overflow-y-auto p-1 border-2 border-gray-100 rounded-xl bg-gray-50 scrollbar-hide">
+            {filteredIcons.map(({ name, Icon }) => (
+              <button key={name} type="button"
+                onClick={() => setCatForm((f) => ({ ...f, iconName: name }))}
+                title={name}
+                className={`flex flex-col items-center justify-center gap-0.5 p-2 rounded-lg transition-all
+                  ${catForm.iconName === name
+                    ? 'bg-brand-600 text-white shadow-sm'
+                    : 'hover:bg-white hover:shadow-sm text-gray-500'}`}>
+                <Icon size={16} />
+                <span className="text-[8px] leading-none truncate w-full text-center hidden sm:block">{name}</span>
+              </button>
+            ))}
+            {filteredIcons.length === 0 && (
+              <p className="col-span-8 sm:col-span-12 text-center py-4 text-xs text-gray-400">No icons match</p>
+            )}
+          </div>
+
+          {/* Manual paste option */}
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-xs text-gray-400 shrink-0">Or type icon name:</span>
+            <input value={catForm.iconName}
+              onChange={(e) => setCatForm((f) => ({ ...f, iconName: e.target.value }))}
+              placeholder="Lucide component name"
+              className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-brand-400 transition-colors font-mono" />
+          </div>
+        </div>
+
+        <button onClick={addCategory} disabled={saving === 'cat' || !catForm.key || !catForm.label}
+          className="w-full bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all">
+          {saving === 'cat' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+          Add Category
+        </button>
+
+        {/* Existing custom categories */}
         {extraCategories.length > 0 && (
-          <div>
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Custom Categories</p>
+          <div className="pt-3 border-t border-gray-100">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+              Custom Categories ({extraCategories.length})
+            </p>
             <div className="flex flex-wrap gap-2">
-              {extraCategories.map((c) => (
-                <div key={c.key} className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border" style={{ background: c.bg, color: c.color, borderColor: c.color + '44' }}>
-                  {c.label}
-                  <button onClick={() => deleteCategory(c.key)} className="hover:opacity-70 transition-opacity">
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
+              {extraCategories.map((c) => {
+                const CIcon = ICON_OPTIONS.find((i) => i.name === c.iconName)?.Icon;
+                return (
+                  <div key={c.key} className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border"
+                    style={{ background: c.bg, color: c.color, borderColor: c.color + '44' }}>
+                    {CIcon && <CIcon size={12} />}
+                    {c.label}
+                    <button onClick={() => deleteCategory(c.key)} className="hover:opacity-70 transition-opacity ml-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
       </div>
 
-      {/* ── Areas ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h3 className="font-bold text-gray-900 mb-4">Add Custom Area / District</h3>
-        <div className="flex gap-2 mb-3">
+      {/* ══ Add Custom Area / District ══ */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-brand-600" /> Add Custom Area / District
+        </h3>
+
+        <div className="flex gap-2">
           <input value={areaInput} onChange={(e) => setAreaInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addArea()}
-            placeholder="Area name (e.g. Kishoreganj)" className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors" />
-          <button onClick={addArea} disabled={saving === 'area'}
-            className="bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center gap-1">
+            placeholder="Area or district name (e.g. Kishoreganj)"
+            className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors" />
+          <button onClick={addArea} disabled={saving === 'area' || !areaInput.trim()}
+            className="bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors flex items-center gap-1.5 shrink-0">
             {saving === 'area' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Add
           </button>
         </div>
 
         {extraAreas.length > 0 && (
           <div>
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Custom Areas ({extraAreas.length})</p>
-            <div className="flex flex-wrap gap-1.5">
-              {extraAreas.map((a) => (
-                <div key={a} className="flex items-center gap-1 text-xs font-medium bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full border border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">
+                Custom Areas ({extraAreas.length})
+              </p>
+              <input value={areaSearch} onChange={(e) => setAreaSearch(e.target.value)}
+                placeholder="Filter…"
+                className="border border-gray-200 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-brand-400 transition-colors w-36" />
+            </div>
+            <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto scrollbar-hide">
+              {filteredAreas.map((a) => (
+                <div key={a} className="flex items-center gap-1 text-xs font-medium bg-gray-100 hover:bg-red-50 text-gray-700 hover:text-red-600 px-2.5 py-1.5 rounded-full border border-gray-200 hover:border-red-200 transition-all group">
+                  <MapPin className="w-2.5 h-2.5 shrink-0" />
                   {a}
-                  <button onClick={() => deleteArea(a)} className="hover:text-red-500 transition-colors ml-0.5">
+                  <button onClick={() => deleteArea(a)} className="ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
@@ -641,11 +997,17 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-400 mt-0.5">Review workers, manage accounts</p>
           </div>
           <div className="flex gap-2">
-            {['workers', 'clients', 'settings'].map((v) => (
+            {[
+              ['workers',  'Workers'],
+              ['clients',  'Clients'],
+              ['analytics','Analytics'],
+              ['excel',    'Excel Upload'],
+              ['settings', 'Settings'],
+            ].map(([v, lbl]) => (
               <button key={v} onClick={() => setView(v)}
-                className={`flex-1 sm:flex-none text-sm font-bold px-5 py-2 rounded-xl capitalize transition-all
+                className={`flex-1 sm:flex-none text-sm font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap
                   ${view === v ? 'bg-gray-900 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                {v}
+                {lbl}
               </button>
             ))}
           </div>
@@ -723,6 +1085,12 @@ export default function AdminDashboard() {
             )}
           </>
         )}
+
+        {/* Analytics */}
+        {view === 'analytics' && <AnalyticsPanel token={token} />}
+
+        {/* Excel upload */}
+        {view === 'excel' && <ExcelUpload token={token} />}
 
         {/* Settings */}
         {view === 'settings' && <SettingsPanel token={token} />}

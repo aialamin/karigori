@@ -18,7 +18,7 @@ function genOtp() {
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password, role, phone, area,
-            category, experience, hourlyRate, bio, areas, languages } = req.body;
+            category, experience, hourlyRate, bio, areas, languages, subcategories } = req.body;
 
     if (!['worker', 'client'].includes(role))
       return res.status(400).json({ message: 'Invalid role' });
@@ -43,6 +43,7 @@ router.post('/register', async (req, res) => {
         hourlyRate: parseInt(hourlyRate) || undefined,
         bio: bio || '',
         areas: areas || [],
+        subcategories: subcategories || [],
         languages: languages || ['Bengali'],
         status: 'pending',
         verified: false,

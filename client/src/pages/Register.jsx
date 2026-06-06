@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useConfig } from '../context/ConfigContext.jsx';
+import { getSubcategoriesForCategory } from '../data/categories.js';
 import { CategoryIcon } from '../components/CategoryIcon.jsx';
 import { FloatInput, FloatTextarea, Alert, Spinner, FieldError } from '../components/ui.jsx';
 
@@ -96,7 +97,8 @@ function WorkerRegister() {
   const [showPass, setShow]     = useState(false);
   const [submitting, setSub]    = useState(false);
   const [errors, setErrors]     = useState({});
-  const [selectedAreas, setAreas] = useState([]);
+  const [selectedAreas,  setAreas]    = useState([]);
+  const [selectedSvcs,   setSvcs]     = useState([]);  // selected subcategory services
 
   // Step 1
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '' });
@@ -161,6 +163,7 @@ function WorkerRegister() {
           ...form, role: 'worker',
           ...prof,
           areas: selectedAreas,
+          subcategories: selectedSvcs,
           languages: prof.languages.split(',').map((l) => l.trim()).filter(Boolean),
         }),
       });
@@ -286,6 +289,32 @@ function WorkerRegister() {
           </div>
           <FloatTextarea id="w_bio"  label="About yourself" value={prof.bio}       onChange={setP('bio')}       rows={3} maxLen={300} />
           <FloatInput   id="w_lang" label="Languages (comma-separated)" value={prof.languages} onChange={setP('languages')} icon={LangIcon} />
+
+          {/* Subcategory service selection */}
+          {prof.category && (() => {
+            const subs = getSubcategoriesForCategory(prof.category);
+            if (!subs.length) return null;
+            return (
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                  Your Specialties <span className="font-normal text-gray-400">(select all that apply)</span>
+                </p>
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 border-2 border-gray-200 rounded-xl bg-gray-50 scrollbar-hide">
+                  {subs.flatMap((sub) => sub.services.map((svc) => (
+                    <button key={svc} type="button"
+                      onClick={() => setSvcs((p) => p.includes(svc) ? p.filter((x) => x !== svc) : [...p, svc])}
+                      className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-all
+                        ${selectedSvcs.includes(svc) ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'}`}>
+                      {selectedSvcs.includes(svc) ? '✓ ' : ''}{svc}
+                    </button>
+                  )))}
+                </div>
+                {selectedSvcs.length > 0 && (
+                  <p className="text-xs text-brand-600 mt-1">{selectedSvcs.length} specialties selected</p>
+                )}
+              </div>
+            );
+          })()}
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={() => setStep(1)}

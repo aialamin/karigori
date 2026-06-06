@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
 // POST /api/config/categories — add a category
 router.post('/categories', requireAuth, requireRole('admin'), async (req, res) => {
   try {
-    const { key, label, labelBn, color, bg } = req.body;
+    const { key, label, labelBn, color, bg, iconName } = req.body;
     if (!key?.trim() || !label?.trim())
       return res.status(400).json({ message: 'key and label are required' });
 
@@ -33,7 +33,7 @@ router.post('/categories', requireAuth, requireRole('admin'), async (req, res) =
     if (c.extraCategories.find((x) => x.key === key.trim()))
       return res.status(400).json({ message: 'Category key already exists' });
 
-    c.extraCategories.push({ key: key.trim(), label: label.trim(), labelBn: labelBn || label.trim(), color: color || '#006A4E', bg: bg || '#e6f4ef' });
+    c.extraCategories.push({ key: key.trim(), label: label.trim(), labelBn: labelBn || label.trim(), color: color || '#006A4E', bg: bg || '#e6f4ef', iconName: iconName || 'Wrench' });
     await c.save();
     res.json(c);
   } catch (err) { res.status(500).json({ message: err.message }); }

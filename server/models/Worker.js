@@ -24,8 +24,9 @@ const workerSchema = new mongoose.Schema({
   photo:         { type: String, default: '' },
   verified:      { type: Boolean, default: false },
   available:     { type: Boolean, default: true },
-  languages:     [{ type: String }],
-  hourlyRate:    { type: Number },
+  languages:       [{ type: String }],
+  hourlyRate:      { type: Number },
+  subcategories:   [{ type: String }],   // e.g. ['Pipe repair','AC gas refill']
 
   // Account status
   status:        { type: String, enum: ['pending','approved','rejected'], default: 'approved' },

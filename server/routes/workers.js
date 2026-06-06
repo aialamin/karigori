@@ -13,11 +13,22 @@ router.get('/', async (req, res) => {
     if (category)  filter.category = category;
     if (area)      filter.areas = { $in: [new RegExp(area, 'i')] };
     if (available !== undefined) filter.available = available === 'true';
-    if (q) filter.$or = [
-      { name: new RegExp(q, 'i') },
-      { bio:  new RegExp(q, 'i') },
-      { areas: { $in: [new RegExp(q, 'i')] } },
-    ];
+    if (q) {
+      // Support pipe-separated OR (from hierarchy expansion: "Upazila1|Upazila2|...")
+      const terms = q.split('|').map((t) => t.trim()).filter(Boolean);
+      if (terms.length === 1) {
+        filter.$or = [
+          { name:          new RegExp(terms[0], 'i') },
+          { bio:           new RegExp(terms[0], 'i') },
+          { areas:         { $in: [new RegExp(terms[0], 'i')] } },
+          { subcategories: { $in: [new RegExp(terms[0], 'i')] } },
+        ];
+      } else {
+        // Match any of the expanded areas
+        const areaRegexes = terms.map((t) => new RegExp(`^${t}$`, 'i'));
+        filter.areas = { $in: areaRegexes };
+      }
+    }
 
     const sortMap = {
       rating:     { verificationLevel: -1, rating: -1 },

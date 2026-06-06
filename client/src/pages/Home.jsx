@@ -1,109 +1,221 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Search, ArrowRight, Users, LayoutGrid, MapPin, ShieldCheck,
-  Phone, Star, TrendingUp, X, ChevronRight, CheckCircle2,
-  MessageSquare, Award, Zap,
+  Phone, Star, X, ChevronRight, CheckCircle2,
+  MessageSquare, Zap, BadgeCheck, Clock, TrendingUp,
+  LocateFixed, Loader2, Navigation,
 } from 'lucide-react';
 import { CATEGORIES, DHAKA_AREAS } from '../constants.js';
 import { CategoryIcon } from '../components/CategoryIcon.jsx';
+import SEOHead from '../components/SEOHead.jsx';
+import { useUserLocation } from '../hooks/useUserLocation.js';
+import { parseNaturalQuery, getAIHints } from '../utils/aiSearch.js';
+import { searchServices } from '../data/categories.js';
+import { addSearchHistory, getSearchHistory, saveAreaPref } from '../utils/cookies.js';
 
-/* ── Live search suggestions ── */
-const SUGGESTIONS = [
-  ...CATEGORIES.map((c) => ({ type: 'category', label: c.label, labelBn: c.labelBn, key: c.key, color: c.color, bg: c.bg })),
-  ...DHAKA_AREAS.map((a)  => ({ type: 'area',     label: a,        key: a })),
+/* ── Cycling city names ── */
+const CITIES = [
+  'গাজীপুরের', 'ঢাকার', 'চট্টগ্রামের', 'সিলেটের',
+  'রাজশাহীর', 'খুলনার', 'বরিশালের', 'ময়মনসিংহের',
+  'রংপুরের', 'নারায়ণগঞ্জের',
 ];
-
-const QUICK_TAGS = CATEGORIES.slice(0, 5).map((c) => ({ key: c.key, label: c.labelBn, color: c.color, bg: c.bg }));
 
 const TESTIMONIALS = [
-  { name: 'রাহিম আহমেদ',    area: 'উত্তরা',   text: 'দ্রুত প্লাম্বার পেয়েছি, ভালো সার্ভিস। সময়মতো এসেছেন এবং কাজ পরিষ্কারভাবে শেষ করেছেন।',  rating: 5 },
-  { name: 'সুমাইয়া ইসলাম', area: 'মিরপুর',   text: '৩০ মিনিটের মধ্যে ইলেক্ট্রিশিয়ান এসেছে। সৎ এবং দক্ষ — দাম যুক্তিসঙ্গত ছিল।',             rating: 5 },
-  { name: 'জাহেদ খান',      area: 'ধানমণ্ডি', text: 'সহজেই কাছের ক্লিনার খুঁজে পেয়েছি। বাসা একদম ঝকঝকে করে দিয়ে গেছেন।',                      rating: 4 },
+  { name: 'রাহিম আহমেদ',      area: 'উত্তরা',    text: 'দ্রুত প্লাম্বার পেয়েছি, ভালো সার্ভিস। সময়মতো এসেছেন এবং কাজ পরিষ্কারভাবে শেষ করেছেন।',  rating: 5 },
+  { name: 'সুমাইয়া ইসলাম',   area: 'মিরপুর',    text: '৩০ মিনিটের মধ্যে ইলেক্ট্রিশিয়ান এসেছে। সৎ এবং দক্ষ — দাম যুক্তিসঙ্গত ছিল।',             rating: 5 },
+  { name: 'জাহেদ খান',        area: 'ধানমণ্ডি',  text: 'সহজেই কাছের ক্লিনার খুঁজে পেয়েছি। বাসা একদম ঝকঝকে করে দিয়ে গেছেন।',                      rating: 4 },
+  { name: 'নাসরিন আক্তার',    area: 'গুলশান',    text: 'কাঠমিস্ত্রি অনেক ভালো কাজ করেছেন। কাস্টম ওয়ার্ডরোব একদম মনের মতো হয়েছে।',              rating: 5 },
+  { name: 'কামাল হোসেন',      area: 'গাজীপুর',   text: 'এসি মেকানিক সময়মতো এসেছেন এবং সমস্যা ঠিক করেছেন। দাম যথেষ্ট কম ছিল।',                  rating: 5 },
+  { name: 'তাসলিমা বেগম',     area: 'বাসাবো',    text: 'বুয়া সার্ভিস অনেক ভালো। বাসা পরিষ্কার রাখেন এবং কাজে অনেক পরিশ্রমী।',                    rating: 4 },
+  { name: 'আরমান হোসেন',      area: 'যাত্রাবাড়ী', text: 'পেইন্টার দ্রুত এবং পরিচ্ছন্নভাবে কাজ শেষ করেছেন। রঙের মান অনেক ভালো।',                 rating: 5 },
+  { name: 'ফারজানা ইসলাম',    area: 'নারায়ণগঞ্জ', text: 'গ্যাস ফিটার অনেক অভিজ্ঞ। লিক সমস্যা মাত্র ১ ঘণ্টায় সমাধান করে দিয়েছেন।',              rating: 5 },
 ];
 
+const SUGGESTIONS = [
+  ...CATEGORIES.map((c) => ({ type: 'category', label: c.label, labelBn: c.labelBn, key: c.key, color: c.color, bg: c.bg })),
+  ...DHAKA_AREAS.map((a)  => ({ type: 'area', label: a, key: a })),
+];
+
+/* ── CountUp ── */
+const BN = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+function toBn(n) { return String(Math.round(n)).split('').map((d) => BN[+d] ?? d).join(''); }
+function CountUp({ target, suffix = '', duration = 1800 }) {
+  const [count, setCount] = useState(0);
+  const [started, setStarted] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting && !started) setStarted(true); }, { threshold: 0.5 });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, [started]);
+  useEffect(() => {
+    if (!started) return;
+    let start = null;
+    const step = (ts) => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / duration, 1);
+      setCount(Math.floor((1 - Math.pow(1 - p, 3)) * target));
+      if (p < 1) requestAnimationFrame(step); else setCount(target);
+    };
+    requestAnimationFrame(step);
+  }, [started, target, duration]);
+  return <span ref={ref}>{toBn(count)}{suffix}</span>;
+}
+
 export default function Home() {
-  const navigate = useNavigate();
-  const [query,   setQuery]   = useState('');
-  const [focused, setFocused] = useState(false);
-  const inputRef   = useRef(null);
+  const navigate  = useNavigate();
+  const userLoc   = useUserLocation();
+
+  const [query,         setQuery]         = useState('');
+  const [focused,       setFocused]       = useState(false);
+  const [cityIdx,       setCityIdx]       = useState(0);
+  const [cityVisible,   setCityVisible]   = useState(true);
+  const [showLocPrompt, setShowLocPrompt] = useState(false);
+  const [aiResult,      setAiResult]      = useState(null);
+  const [serviceResults,setSvcResults]    = useState([]);
+  const inputRef    = useRef(null);
   const dropdownRef = useRef(null);
 
-  const filtered = query.trim()
-    ? SUGGESTIONS.filter((s) => s.label.toLowerCase().includes(query.toLowerCase()) || s.labelBn?.includes(query)).slice(0, 7)
-    : SUGGESTIONS.slice(0, 7);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCityVisible(false);
+      setTimeout(() => { setCityIdx((i) => (i + 1) % CITIES.length); setCityVisible(true); }, 350);
+    }, 2800);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     function click(e) {
-      if (!dropdownRef.current?.contains(e.target) && !inputRef.current?.contains(e.target))
-        setFocused(false);
+      if (!dropdownRef.current?.contains(e.target) && !inputRef.current?.contains(e.target)) setFocused(false);
     }
     document.addEventListener('mousedown', click);
     return () => document.removeEventListener('mousedown', click);
   }, []);
 
-  function search(val) {
-    setFocused(false);
-    navigate(val?.trim() ? `/browse?q=${encodeURIComponent(val.trim())}` : '/browse');
+  function handleQueryChange(val) {
+    setQuery(val); setFocused(true);
+    if (val.length >= 2) setSvcResults(searchServices(val)); else setSvcResults([]);
+    if (val.length > 4) { const p = parseNaturalQuery(val); setAiResult(p?.confidence >= 40 ? p : null); }
+    else setAiResult(null);
   }
+
+  function search(val) {
+    setFocused(false); setAiResult(null); setSvcResults([]);
+    const q = val?.trim(); if (!q) { navigate('/browse'); return; }
+    addSearchHistory(q);
+    const parsed = parseNaturalQuery(q);
+    if (parsed?.confidence >= 70 && parsed.category && parsed.area) {
+      saveAreaPref(parsed.area);
+      navigate(`/browse/${parsed.category}?q=${encodeURIComponent(parsed.area)}`); return;
+    }
+    if (parsed?.confidence >= 50 && parsed.category) {
+      navigate(`/browse/${parsed.category}${parsed.area ? `?q=${encodeURIComponent(parsed.area)}` : ''}`); return;
+    }
+    navigate(`/browse?q=${encodeURIComponent(q)}`);
+  }
+
   function pick(s) {
     setFocused(false);
     s.type === 'category' ? navigate(`/browse/${s.key}`) : navigate(`/browse?q=${encodeURIComponent(s.label)}`);
   }
 
+  const filtered = query.trim()
+    ? SUGGESTIONS.filter((s) => s.label.toLowerCase().includes(query.toLowerCase()) || s.labelBn?.includes(query)).slice(0, 6)
+    : SUGGESTIONS.slice(0, 6);
+
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col bg-surface">
+      <SEOHead canonical="/" keywords="plumber dhaka, electrician dhaka, AC repair dhaka, plumber gazipur, বিশ্বস্ত কারিগর বাংলাদেশ, karigori" />
 
-      {/* ══════════════════════════════════════════
-          HERO
-      ══════════════════════════════════════════ */}
-      <section className="relative bg-gradient-to-br from-brand-700 via-brand-600 to-emerald-700 text-white overflow-hidden">
-        {/* Decorative */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.07)_0%,transparent_60%)] pointer-events-none" />
-        <div className="absolute -bottom-32 -left-20 w-80 h-80 bg-white/5 rounded-full pointer-events-none" />
-        <div className="absolute top-0 right-0 w-72 h-72 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+      {/* ══════════════════════════════════════
+          HERO — Navy premium
+      ══════════════════════════════════════ */}
+      <section className="relative bg-navy-900 text-white overflow-hidden">
+        {/* Decorative gradients */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-trust-500/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-trust-500/5 rounded-full blur-2xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+        </div>
 
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-20 sm:py-28 text-center">
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-12 pb-16 sm:pt-16 sm:pb-20 text-center">
 
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white/90 text-xs font-semibold px-4 py-1.5 rounded-full mb-6 backdrop-blur-sm">
-            <TrendingUp className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-            ঢাকার #১ লোকাল সার্ভিস প্ল্যাটফর্ম
+          {/* Trust badge */}
+          <div className="inline-flex items-center gap-2 bg-white/8 border border-white/15 text-white/80 text-xs font-semibold px-4 py-1.5 rounded-full mb-6">
+            <TrendingUp className="w-3.5 h-3.5 text-trust-400 shrink-0" />
+            বাংলাদেশের #১ লোকাল সার্ভিস প্ল্যাটফর্ম
           </div>
 
           {/* H1 */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-4 tracking-tight font-bn">
-            ঢাকা-র বিশ্বস্ত<br />
-            <span className="text-amber-300 drop-shadow">কারিগর</span> খুঁজুন
+          <h1 className="text-[28px] sm:text-4xl lg:text-[52px] font-black text-white mb-5" style={{ lineHeight: 1.18, letterSpacing: '-0.025em' }}>
+            <span
+              className="text-trust-400"
+              style={{ transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: cityVisible ? 1 : 0, display: 'inline-block', transform: cityVisible ? 'translateY(0)' : 'translateY(-8px)' }}>
+              {CITIES[cityIdx]}
+            </span>{' '}বিশ্বস্ত<br />
+            <span className="text-white">কারিগর খুঁজুন</span>
           </h1>
-          <p className="text-white/75 text-base sm:text-lg max-w-xl mx-auto mb-10 leading-relaxed">
-            বিশ্বস্ত প্লাম্বার, ইলেক্ট্রিশিয়ান, ক্লিনার ও আরও অনেক পেশাদার —
-            যাচাইকৃত কারিগর, সরাসরি যোগাযোগ, কোনো কমিশন নেই।
+
+          <p className="text-white/60 text-sm sm:text-base max-w-lg mx-auto mb-8" style={{ lineHeight: 1.7 }}>
+            যাচাইকৃত প্লাম্বার, ইলেক্ট্রিশিয়ান, ক্লিনার ও আরও পেশাদার —
+            সরাসরি যোগাযোগ, কোনো কমিশন নেই।
           </p>
 
-          {/* Search */}
-          <div className="relative max-w-xl mx-auto" ref={dropdownRef}>
-            <div className={`flex items-center bg-white rounded-2xl shadow-2xl overflow-hidden transition-all ${focused ? 'ring-2 ring-amber-300' : ''}`}>
-              <Search className="w-5 h-5 text-gray-400 ml-4 shrink-0" />
+          {/* Bengali permission modal */}
+          {showLocPrompt && (
+            <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center px-4" onClick={() => setShowLocPrompt(false)}>
+              <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                <div className="bg-navy-900 px-6 pt-8 pb-6 text-center">
+                  <div className="w-16 h-16 bg-trust-500/20 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-trust-500/30">
+                    <Navigation className="w-8 h-8 text-trust-400" />
+                  </div>
+                  <h3 className="text-white font-black text-xl" style={{ lineHeight: 1.3 }}>আপনার অবস্থান ব্যবহার করতে চাই</h3>
+                </div>
+                <div className="px-6 py-5">
+                  <p className="text-navy-900 text-sm text-center mb-1" style={{ lineHeight: 1.7 }}>আরও ভালো সার্চ ফলাফলের জন্য আমরা আপনার ডিভাইসের অবস্থান ব্যবহার করতে চাই।</p>
+                  <p className="text-slate-400 text-xs text-center mb-5">আমরা আপনার অবস্থান সংরক্ষণ করি না।</p>
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => { setShowLocPrompt(false); userLoc.detect(); }}
+                      className="w-full btn-primary py-3.5 justify-center text-base">
+                      <LocateFixed className="w-4 h-4 shrink-0" /> অনুমতি দিন
+                    </button>
+                    <button onClick={() => setShowLocPrompt(false)}
+                      className="w-full border-2 border-gray-200 text-slate-500 font-semibold py-3 rounded-btn text-sm">
+                      এখন নয়
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Search bar ── */}
+          <div className="relative max-w-2xl mx-auto" ref={dropdownRef}>
+            <div className={`flex items-center bg-white rounded-2xl overflow-hidden transition-all duration-200
+              ${focused ? 'ring-3 ring-trust-400 shadow-[0_0_0_3px_rgba(34,197,94,0.25),0_20px_60px_rgba(0,0,0,0.3)]' : 'shadow-[0_8px_40px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_50px_rgba(0,0,0,0.4)]'}`}>
+              <Search className="w-5 h-5 text-slate-400 ml-4 shrink-0" />
               <input
                 ref={inputRef}
                 type="search"
                 value={query}
-                onChange={(e) => { setQuery(e.target.value); setFocused(true); }}
+                onChange={(e) => handleQueryChange(e.target.value)}
                 onFocus={() => setFocused(true)}
                 onKeyDown={(e) => { if (e.key === 'Enter') search(query); if (e.key === 'Escape') setFocused(false); }}
-                placeholder="দক্ষতা, নাম বা এলাকা লিখুন…"
-                className="flex-1 px-3 py-4 text-gray-800 text-sm outline-none bg-transparent placeholder-gray-400 font-bn"
-                aria-label="কারিগর খুঁজুন"
+                placeholder="প্লাম্বার, এসি মেকানিক বা এলাকা লিখুন…"
+                className="flex-1 px-3 py-5 text-navy-900 text-sm font-medium outline-none bg-transparent placeholder-slate-400"
               />
-              {query && (
-                <button onClick={() => { setQuery(''); inputRef.current?.focus(); }} className="p-1 mr-1 text-gray-400 hover:text-gray-600">
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+              {query
+                ? <button onClick={() => { setQuery(''); setSvcResults([]); inputRef.current?.focus(); }} className="p-1.5 mr-1 text-slate-400 hover:text-navy-900 transition-colors"><X className="w-4 h-4" /></button>
+                : <button onClick={() => userLoc.area ? navigate(`/browse?q=${encodeURIComponent(userLoc.area)}`) : setShowLocPrompt(true)}
+                    disabled={userLoc.loading}
+                    className={`flex items-center gap-1.5 mx-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all shrink-0
+                      ${userLoc.area ? 'bg-trust-50 text-trust-700 border border-trust-300' : 'text-slate-400 hover:text-trust-600 hover:bg-gray-50'}`}>
+                    {userLoc.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><LocateFixed className="w-3.5 h-3.5 shrink-0" /><span className="hidden sm:inline">{userLoc.area || 'কাছের'}</span></>}
+                  </button>
+              }
               <button onClick={() => search(query)}
-                className="m-1.5 bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all">
+                className="m-2 bg-trust-500 hover:bg-trust-600 active:scale-95 text-white font-bold px-6 py-3 rounded-xl transition-all shrink-0 text-sm shadow-trust">
                 খুঁজুন
               </button>
             </div>
@@ -111,85 +223,179 @@ export default function Home() {
             {/* Dropdown */}
             {focused && (
               <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50">
-                <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-50">
+                {/* Service matches */}
+                {serviceResults.length > 0 && (
+                  <>
+                    <div className="px-4 pt-3 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">সার্ভিস ম্যাচ</div>
+                    {serviceResults.slice(0, 4).map((r, i) => (
+                      <button key={i} onMouseDown={() => { addSearchHistory(r.subcategory.label); navigate(`/browse/${r.categoryKey}?q=${encodeURIComponent(r.subcategory.label)}`); setFocused(false); }}
+                        className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-trust-50 transition-colors">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                          style={{ background: getCategoryBg(r.categoryKey) }}>
+                          <CategoryIcon category={r.categoryKey} size={16} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-navy-900">{r.subcategory.label}</p>
+                          <p className="text-[11px] text-slate-400 truncate">{r.matchedServices.slice(0, 3).join(' · ')}</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-300 shrink-0 mt-1" />
+                      </button>
+                    ))}
+                    <div className="border-t border-gray-50 my-1" />
+                  </>
+                )}
+
+                {/* AI result */}
+                {aiResult && (
+                  <div className="bg-gradient-to-r from-trust-50 to-emerald-50 border-b border-trust-100 px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-6 h-6 bg-trust-500 rounded-lg flex items-center justify-center shrink-0">
+                        <span className="text-white text-[9px] font-black">AI</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-trust-700">{aiResult.suggestion}</p>
+                      </div>
+                      <button onMouseDown={() => search(query)} className="shrink-0 bg-trust-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg">খুঁজুন</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent searches */}
+                {!query && getSearchHistory().length > 0 && (
+                  <>
+                    <div className="px-4 pt-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">সাম্প্রতিক</div>
+                    {getSearchHistory().map((h, i) => (
+                      <button key={i} onMouseDown={() => { setQuery(h); search(h); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors">
+                        <span className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 text-gray-400 text-xs">↩</span>
+                        <span className="text-sm text-navy-900 truncate">{h}</span>
+                      </button>
+                    ))}
+                    <div className="border-t border-gray-50 my-1" />
+                  </>
+                )}
+
+                {/* Category suggestions */}
+                <div className="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                   {query ? 'ফলাফল' : 'সাজেশন'}
                 </div>
-                {filtered.length === 0 ? (
-                  <p className="px-4 py-3 text-sm text-gray-400">কোনো ফলাফল পাওয়া যায়নি</p>
-                ) : filtered.map((s, i) => (
+                {filtered.map((s, i) => (
                   <button key={i} onMouseDown={() => pick(s)}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors">
-                    {s.type === 'category' ? (
-                      <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: s.bg, color: s.color }}>
-                        <CategoryIcon category={s.key} size={15} />
-                      </span>
-                    ) : (
-                      <span className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                        <MapPin className="w-3.5 h-3.5 text-gray-500" />
-                      </span>
-                    )}
+                    {s.type === 'category'
+                      ? <span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ background: s.bg, color: s.color }}><CategoryIcon category={s.key} size={14} /></span>
+                      : <span className="w-7 h-7 rounded-xl bg-gray-100 flex items-center justify-center shrink-0"><MapPin className="w-3.5 h-3.5 text-slate-400" /></span>
+                    }
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate">{s.label}</p>
-                      {s.labelBn && <p className="text-[11px] text-gray-400 font-bn">{s.labelBn}</p>}
-                      {s.type === 'area' && <p className="text-[11px] text-gray-400">ঢাকার এলাকা</p>}
+                      <p className="text-sm font-medium text-navy-900 truncate">{s.label}</p>
+                      {s.labelBn && <p className="text-[11px] text-slate-400">{s.labelBn}</p>}
                     </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-300 ml-auto shrink-0" />
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-200 ml-auto shrink-0" />
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Quick tags */}
+          {/* Category pills */}
           <div className="flex flex-wrap justify-center gap-2 mt-5">
-            {QUICK_TAGS.map((t) => (
-              <button key={t.key} onClick={() => navigate(`/browse/${t.key}`)}
-                className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white/90 text-xs font-semibold px-3 py-1.5 rounded-full transition-all active:scale-95 font-bn">
-                <CategoryIcon category={t.key} size={12} /> {t.label}
+            {CATEGORIES.map((c) => (
+              <button key={c.key} onClick={() => navigate(`/browse/${c.key}`)}
+                className="flex items-center gap-1.5 border border-white/15 text-white/80 text-xs font-medium px-3 py-1.5 rounded-full transition-all active:scale-95 hover:bg-white/10"
+                style={{ background: 'rgba(255,255,255,0.07)' }}>
+                <CategoryIcon category={c.key} size={11} /> {c.labelBn}
               </button>
             ))}
+            <Link to="/browse" className="flex items-center gap-1 bg-trust-500/20 border border-trust-500/30 text-trust-300 text-xs font-bold px-3 py-1.5 rounded-full">
+              সব →
+            </Link>
           </div>
 
-          {/* Stats */}
-          <div className="flex items-center justify-center gap-10 mt-12">
-            {[
-              { icon: Users,      val: '৩০+', label: 'কারিগর' },
-              { icon: LayoutGrid, val: '৮',   label: 'ক্যাটাগরি' },
-              { icon: MapPin,     val: '২৫+', label: 'ঢাকার এলাকা' },
-            ].map(({ icon: Icon, val, label }) => (
-              <div key={label} className="flex flex-col items-center">
-                <Icon className="w-4 h-4 text-amber-300 mb-1" />
-                <span className="text-2xl font-extrabold">{val}</span>
-                <span className="text-xs text-white/60 mt-0.5 font-bn">{label}</span>
-              </div>
-            ))}
-          </div>
+          {/* Location feedback */}
+          {(userLoc.area || userLoc.loading) && (
+            <div className="flex items-center justify-center mt-5">
+              {userLoc.loading && (
+                <div className="flex items-center gap-2 bg-white/8 border border-white/15 rounded-full px-4 py-2 text-sm text-white/70">
+                  <Loader2 className="w-4 h-4 animate-spin text-trust-400 shrink-0" /> অবস্থান সনাক্ত হচ্ছে…
+                </div>
+              )}
+              {userLoc.area && !userLoc.loading && (
+                <div className="flex items-center gap-2.5 bg-white/8 border border-white/15 rounded-2xl px-4 py-2.5 flex-wrap justify-center gap-y-1.5">
+                  <Navigation className="w-4 h-4 text-trust-400 shrink-0" />
+                  <span className="text-sm text-white/80">সনাক্ত: <strong className="text-trust-300">{userLoc.area}</strong></span>
+                  <button onClick={() => navigate(`/browse?q=${encodeURIComponent(userLoc.area)}`)}
+                    className="bg-trust-500 hover:bg-trust-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shrink-0">
+                    এখানে কারিগর →
+                  </button>
+                  <button onClick={userLoc.clear} className="text-white/30 hover:text-white/70 transition-colors"><X className="w-3.5 h-3.5" /></button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════
-          CATEGORIES
-      ══════════════════════════════════════════ */}
-      <section className="py-16 bg-white">
+      {/* ── Stats band ── */}
+      <section className="bg-navy-950 border-t border-white/5">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-3 divide-x divide-white/10">
+          {[
+            { target: 30,  suffix: '+', label: 'যাচাইকৃত কারিগর',  sub: 'Verified Workers' },
+            { target: 8,   suffix: '',  label: 'সার্ভিস ক্যাটাগরি', sub: 'Categories' },
+            { target: 500, suffix: '+', label: 'বাংলাদেশের এলাকা',  sub: 'Locations' },
+          ].map(({ target, suffix, label, sub }) => (
+            <div key={label} className="flex flex-col items-center text-center px-4 py-2">
+              <span className="text-3xl sm:text-4xl font-black text-trust-400" style={{ letterSpacing: '-0.03em' }}>
+                <CountUp target={target} suffix={suffix} />
+              </span>
+              <span className="text-xs sm:text-sm font-semibold text-white/70 mt-1">{label}</span>
+              <span className="text-[10px] text-white/30 mt-0.5">{sub}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Trust chips ── */}
+      <section className="bg-white border-b border-gray-100 overflow-x-auto scrollbar-hide">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3 flex-nowrap">
+          {[
+            { icon: BadgeCheck, label: 'NID যাচাইকৃত', color: 'text-trust-600 bg-trust-50 border-trust-200' },
+            { icon: Phone,      label: 'ফোন যাচাইকৃত', color: 'text-amber-600 bg-amber-50 border-amber-200' },
+            { icon: ShieldCheck,label: 'কোনো কমিশন নেই', color: 'text-blue-600 bg-blue-50 border-blue-200' },
+            { icon: Zap,        label: 'সরাসরি যোগাযোগ', color: 'text-purple-600 bg-purple-50 border-purple-200' },
+            { icon: Star,       label: 'রিয়েল রিভিউ', color: 'text-orange-600 bg-orange-50 border-orange-200' },
+          ].map(({ icon: Icon, label, color }) => (
+            <span key={label} className={`inline-flex items-center gap-1.5 shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border ${color}`}>
+              <Icon className="w-3.5 h-3.5 shrink-0" /> {label}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Categories ── */}
+      <section className="py-14 bg-surface">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-bn mb-2">কী সার্ভিস দরকার?</h2>
-            <p className="text-gray-400 text-sm">ঢাকায় যাচাইকৃত পেশাদার কারিগরি সার্ভিস</p>
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <h2 className="section-title">কী সার্ভিস দরকার?</h2>
+              <p className="section-sub">৮টি ক্যাটাগরিতে যাচাইকৃত পেশাদার</p>
+            </div>
+            <Link to="/browse" className="text-sm font-semibold text-trust-600 hover:text-trust-700 flex items-center gap-1">
+              সব দেখুন <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {CATEGORIES.map((cat) => (
               <button key={cat.key} onClick={() => navigate(`/browse/${cat.key}`)}
-                className="group flex flex-col items-center gap-3 p-5 rounded-2xl transition-all duration-200 hover:-translate-y-1 hover:shadow-lg active:scale-95 cursor-pointer"
-                style={{ background: cat.bg }}
-                aria-label={`${cat.label} খুঁজুন`}>
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-sm"
-                  style={{ background: cat.color + '20', color: cat.color }}>
-                  <CategoryIcon category={cat.key} size={26} />
+                className="group flex flex-col items-center gap-3 p-5 rounded-card border border-gray-100 bg-white hover:border-current hover:shadow-card-hover transition-all duration-200 cursor-pointer"
+                style={{ '--cat': cat.color }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm"
+                  style={{ background: cat.bg, color: cat.color }}>
+                  <CategoryIcon category={cat.key} size={28} />
                 </div>
                 <div className="text-center" style={{ color: cat.color }}>
                   <p className="font-bold text-sm">{cat.label}</p>
-                  <p className="text-xs opacity-70 font-bn mt-0.5">{cat.labelBn}</p>
+                  <p className="text-xs opacity-70 mt-0.5">{cat.labelBn}</p>
                 </div>
               </button>
             ))}
@@ -197,167 +403,150 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════
-          HOW IT WORKS
-      ══════════════════════════════════════════ */}
-      <section className="py-16 bg-gray-50">
+      {/* ── How it works ── */}
+      <section className="py-14 bg-white border-t border-gray-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-bn mb-2">তিনটি সহজ ধাপে কাজ করে</h2>
-            <p className="text-gray-400 text-sm">কিভাবে কারিগরি ব্যবহার করবেন</p>
+          <div className="text-center mb-10">
+            <h2 className="section-title">মাত্র ৩টি ধাপে কারিগর পান</h2>
+            <p className="section-sub">সহজ, দ্রুত, বিশ্বস্ত</p>
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 relative">
-            {/* Connector line */}
-            <div className="hidden sm:block absolute top-12 left-[calc(33%+1rem)] right-[calc(33%+1rem)] h-0.5 bg-gradient-to-r from-brand-200 via-brand-400 to-brand-200" />
-
+            <div className="hidden sm:block absolute top-10 left-[calc(33%+2rem)] right-[calc(33%+2rem)] h-0.5 bg-gradient-to-r from-trust-200 via-trust-400 to-trust-200" />
             {[
-              { step: '০১', icon: Search,   title: 'কারিগর খুঁজুন',         desc: 'আপনার এলাকা ও প্রয়োজন অনুযায়ী ক্যাটাগরি বা সার্চ করুন।' },
-              { step: '০২', icon: Star,     title: 'প্রোফাইল দেখুন',         desc: 'রেটিং, অভিজ্ঞতা, সার্ভিস এলাকা ও যাচাইকরণ স্ট্যাটাস দেখুন।' },
-              { step: '০৩', icon: Phone,    title: 'সরাসরি যোগাযোগ করুন',   desc: 'মাঝখানে কেউ নেই — সরাসরি কল করে কথা বলুন ও চুক্তি করুন।' },
-            ].map(({ step, icon: Icon, title, desc }) => (
-              <div key={step} className="relative flex flex-col items-center text-center p-7 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="relative mb-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-brand-500 to-brand-700 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <span className="absolute -top-2 -right-2 w-7 h-7 bg-amber-400 rounded-full flex items-center justify-center text-white text-xs font-extrabold font-bn shadow-sm">
-                    {step[1]}
-                  </span>
+              { n: '01', icon: Search,   title: 'কারিগর খুঁজুন',       desc: 'এলাকা ও সার্ভিস দিয়ে ফিল্টার করুন, রেটিং দেখুন।' },
+              { n: '02', icon: Star,     title: 'প্রোফাইল দেখুন',       desc: 'রেটিং, অভিজ্ঞতা ও যাচাইকরণ স্ট্যাটাস চেক করুন।' },
+              { n: '03', icon: Phone,    title: 'সরাসরি যোগাযোগ করুন', desc: 'কোনো মধ্যস্থতাকারী নেই — সরাসরি কল করুন।' },
+            ].map(({ n, icon: Icon, title, desc }) => (
+              <div key={n} className="relative flex flex-col items-center text-center p-6 bg-surface rounded-card border border-gray-100 hover:shadow-card transition-all">
+                <div className="absolute -top-3 -right-3 w-7 h-7 bg-trust-500 rounded-full flex items-center justify-center text-white text-[10px] font-black shadow-trust">{n}</div>
+                <div className="w-14 h-14 bg-navy-900 rounded-2xl flex items-center justify-center mb-4 shadow-navy">
+                  <Icon className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2 font-bn">{title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed font-bn">{desc}</p>
+                <h3 className="font-bold text-navy-900 mb-2">{title}</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════
-          TRUST — VERIFIED
-      ══════════════════════════════════════════ */}
-      <section className="py-16 bg-white border-t border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-bn mb-2">বিশ্বাসযোগ্য ও যাচাইকৃত কারিগর</h2>
-            <p className="text-gray-400 text-sm font-bn">আমরা কারিগরদের যাচাই করি যাতে আপনি নিরাপদে সার্ভিস পেতে পারেন</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {[
-              { icon: CheckCircle2, color: 'text-emerald-600 bg-emerald-50', title: 'তথ্য যাচাই', desc: 'ফোন নম্বর ও পরিচয়পত্র (NID) যাচাই করা হয়।' },
-              { icon: ShieldCheck,  color: 'text-brand-600 bg-brand-50',     title: 'প্রোফাইল পর্যালোচনা', desc: 'প্রতিটি কারিগরের প্রোফাইল আমাদের টিম রিভিউ করে অনুমোদন দেয়।' },
-              { icon: Star,         color: 'text-amber-600 bg-amber-50',      title: 'রিয়েল রিভিউ', desc: 'রেটিং ও রিভিউ আসে বাস্তব ব্যবহারকারীদের কাছ থেকে।' },
-            ].map(({ icon: Icon, color, title, desc }) => (
-              <div key={title} className="flex flex-col items-center text-center gap-4 p-6 rounded-2xl border border-gray-100 bg-gray-50">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${color}`}>
-                  <Icon className="w-5 h-5" />
+      {/* ── Reviews marquee ── */}
+      <section className="py-14 bg-surface border-t border-gray-100">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-8">
+          <h2 className="section-title">ব্যবহারকারীদের অভিজ্ঞতা</h2>
+          <p className="section-sub">বাস্তব রিভিউ, বাস্তব মানুষ</p>
+        </div>
+        <div className="overflow-hidden">
+          <div className="marquee-track">
+            {[...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => (
+              <div key={i} className="w-72 sm:w-80 shrink-0 mx-3 bg-white rounded-card shadow-card p-5 flex flex-col gap-3 border border-gray-50">
+                <div className="flex gap-0.5">
+                  {[1,2,3,4,5].map((s) => (
+                    <svg key={s} width="14" height="14" viewBox="0 0 24 24">
+                      <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
+                        fill={s <= t.rating ? '#FBBF24' : 'none'} stroke={s <= t.rating ? '#FBBF24' : '#D1D5DB'} strokeWidth="1.5" strokeLinejoin="round" />
+                    </svg>
+                  ))}
                 </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 mb-1 font-bn">{title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed font-bn">{desc}</p>
+                <p className="text-navy-900 text-sm leading-relaxed flex-1">"{t.text}"</p>
+                <div className="flex items-center gap-2.5 pt-2.5 border-t border-gray-50">
+                  <div className="w-8 h-8 bg-navy-900 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0">{t.name[0]}</div>
+                  <div>
+                    <p className="text-sm font-bold text-navy-900">{t.name}</p>
+                    <p className="text-xs text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" />{t.area}</p>
+                  </div>
+                  <CheckCircle2 className="w-4 h-4 text-trust-500 ml-auto shrink-0" />
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      </section>
 
-          {/* Disclaimer notice */}
-          <div className="mt-8 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 max-w-2xl mx-auto">
+      {/* ── Trust section ── */}
+      <section className="py-14 bg-white border-t border-gray-100">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10">
+            <h2 className="section-title">বিশ্বাসযোগ্য ও যাচাইকৃত</h2>
+            <p className="section-sub">আমরা কারিগরদের যাচাই করি যাতে আপনি নিরাপদে সার্ভিস পান</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { icon: BadgeCheck, color: 'bg-trust-100 text-trust-600', title: 'NID যাচাইকৃত', desc: 'ফোন নম্বর ও পরিচয়পত্র (NID) যাচাই করা হয়।' },
+              { icon: ShieldCheck, color: 'bg-blue-100 text-blue-600', title: 'কোনো কমিশন নেই', desc: 'সরাসরি কারিগরের সাথে কথা বলুন, কোনো ফি নেই।' },
+              { icon: Star, color: 'bg-amber-100 text-amber-600', title: 'রিয়েল রিভিউ', desc: 'সব রেটিং বাস্তব ব্যবহারকারীদের কাছ থেকে।' },
+            ].map(({ icon: Icon, color, title, desc }) => (
+              <div key={title} className="flex items-start gap-4 p-5 bg-surface rounded-card border border-gray-100">
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${color}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-navy-900 mb-1">{title}</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
             <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800 leading-relaxed font-bn">
-              <strong>গুরুত্বপূর্ণ:</strong> যাচাইকরণ সম্পূর্ণ নিরাপত্তার নিশ্চয়তা দেয় না।
-              সার্ভিস গ্রহণের আগে নিজে যাচাই করুন।{' '}
-              <Link to="/disclaimer" className="underline font-semibold hover:text-amber-900">সম্পূর্ণ নীতিমালা পড়ুন →</Link>
+            <p className="text-sm text-amber-800 leading-relaxed">
+              <strong>গুরুত্বপূর্ণ:</strong> যাচাইকরণ সম্পূর্ণ নিরাপত্তার নিশ্চয়তা দেয় না।{' '}
+              <Link to="/disclaimer" className="underline font-semibold">সম্পূর্ণ নীতিমালা পড়ুন →</Link>
             </p>
           </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════
-          NO MIDDLEMAN
-      ══════════════════════════════════════════ */}
-      <section className="py-16 bg-gray-50">
+      {/* ── FAQ ── */}
+      <section className="py-14 bg-surface border-t border-gray-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-bn mb-2">কোনো মধ্যস্থতাকারী নেই</h2>
-            <p className="text-gray-400 text-sm font-bn">সরাসরি সংযোগ — সরাসরি চুক্তি</p>
+          <div className="text-center mb-10">
+            <h2 className="section-title">সাধারণ প্রশ্নোত্তর</h2>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-4xl mx-auto">
             {[
-              { icon: Zap,          title: 'কোনো কমিশন নেই',       desc: 'কারিগরিকে কোনো অ্যাপ ফি বা কমিশন দিতে হবে না।' },
-              { icon: Phone,        title: 'সরাসরি কথা বলুন',       desc: 'কারিগরের সাথে সরাসরি ফোনে বা WhatsApp-এ কথা বলুন।' },
-              { icon: MessageSquare,title: 'নিজের মতো চুক্তি করুন', desc: 'কাজ শুরুর আগে দাম ও শর্ত নিজেরা ঠিক করুন।' },
-            ].map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="flex items-start gap-4 p-5 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                <div className="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center shrink-0">
-                  <Icon className="w-5 h-5 text-brand-600" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-sm mb-1 font-bn">{title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed font-bn">{desc}</p>
-                </div>
-              </div>
+              { q: 'ঢাকায় ভালো প্লাম্বার কোথায় পাবো?', a: 'কারিগরি প্ল্যাটফর্মে ঢাকার সব এলাকায় যাচাইকৃত প্লাম্বার পাবেন। ফোন নম্বর দেখে সরাসরি যোগাযোগ করুন — কোনো কমিশন নেই।' },
+              { q: 'গাজীপুরে ইলেক্ট্রিশিয়ান পাবো কোথায়?', a: 'কারিগরিতে গাজীপুরের যাচাইকৃত ইলেক্ট্রিশিয়ান আছেন। Browse করুন, রেটিং দেখুন এবং সরাসরি কল করুন।' },
+              { q: 'কারিগরি কি সম্পূর্ণ বিনামূল্যে?', a: 'হ্যাঁ, কারিগরি ব্যবহার সম্পূর্ণ বিনামূল্যে। কোনো বুকিং ফি বা কমিশন নেই।' },
+              { q: 'How to find a trusted plumber in Dhaka?', a: 'Use Karigori — Bangladesh\'s #1 local service platform. Find verified plumbers, check ratings, call directly. No commission.' },
+            ].map(({ q, a }) => (
+              <details key={q} className="group bg-white border border-gray-100 rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-all">
+                <summary className="flex items-start justify-between p-4 cursor-pointer font-semibold text-navy-900 text-sm list-none gap-2">
+                  <span>{q}</span>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-open:rotate-90 transition-transform shrink-0 mt-0.5" />
+                </summary>
+                <p className="px-4 pb-4 text-sm text-slate-500 leading-relaxed border-t border-gray-50 pt-3">{a}</p>
+              </details>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════
-          TESTIMONIALS
-      ══════════════════════════════════════════ */}
-      <section className="py-16 bg-white border-t border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-bn mb-2">ঢাকার মানুষের বাস্তব অভিজ্ঞতা</h2>
-            <p className="text-gray-400 text-sm font-bn">ব্যবহারকারীদের মতামত</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {TESTIMONIALS.map((t) => (
-              <div key={t.name} className="bg-gray-50 rounded-2xl border border-gray-100 p-5 flex flex-col gap-4">
-                {/* Stars */}
-                <div className="flex gap-0.5">
-                  {[1,2,3,4,5].map((i) => (
-                    <Star key={i} className={`w-4 h-4 ${i <= t.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200'}`} />
-                  ))}
-                </div>
-                {/* Quote */}
-                <p className="text-gray-700 text-sm leading-relaxed font-bn flex-1">"{t.text}"</p>
-                {/* Reviewer */}
-                <div className="flex items-center gap-2.5 pt-2 border-t border-gray-200">
-                  <div className="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center text-brand-700 font-bold text-sm shrink-0">
-                    {t.name[0]}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900 font-bn">{t.name}</p>
-                    <p className="text-xs text-gray-400 font-bn flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> {t.area}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
+      {/* ── CTA ── */}
+      <section className="py-16 bg-navy-900">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+          <h2 className="text-2xl sm:text-3xl font-black text-white mb-3" style={{ letterSpacing: '-0.02em' }}>এখনই সাহায্য দরকার?</h2>
+          <p className="text-white/50 text-sm mb-8">ঢাকার সব যাচাইকৃত কারিগর ব্রাউজ করুন</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button onClick={() => navigate('/browse')}
+              className="btn-primary text-base px-8 py-4 shadow-trust">
+              সকল কারিগর দেখুন <ArrowRight className="w-5 h-5 shrink-0" />
+            </button>
+            <Link to="/register"
+              className="border-2 border-white/20 text-white font-bold px-8 py-4 rounded-btn hover:bg-white/10 transition-all text-sm">
+              কারিগর হিসেবে যোগ দিন
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════
-          CTA
-      ══════════════════════════════════════════ */}
-      <section className="py-16 bg-gradient-to-br from-brand-600 to-emerald-700 text-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
-          <div>
-            <h2 className="text-2xl font-extrabold mb-1 font-bn">এখনই সাহায্য দরকার?</h2>
-            <p className="text-white/70 text-sm font-bn">ঢাকার সব যাচাইকৃত কারিগর ব্রাউজ করুন</p>
-          </div>
-          <button onClick={() => navigate('/browse')}
-            className="bg-white text-brand-700 font-extrabold px-7 py-4 rounded-full flex items-center gap-2.5 hover:bg-gray-50 active:scale-95 transition-all shadow-lg shrink-0 font-bn">
-            <span>সব কারিগর দেখুন</span>
-            <ArrowRight className="w-4 h-4 shrink-0" />
-          </button>
-        </div>
-      </section>
+      {/* Mobile bottom padding for BottomNav */}
+      <div className="h-16 md:hidden" />
     </div>
   );
+}
+
+function getCategoryBg(key) {
+  const map = { plumber: '#e8f1f8', electrician: '#fef6e4', cleaner: '#e6f4ef', bua: '#f4ecfb', painter: '#fbeae9', ac_repair: '#eaf3fb', carpenter: '#f5ede5', gas_fitter: '#fdf0e6' };
+  return map[key] || '#f3f4f6';
 }

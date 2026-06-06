@@ -1,6 +1,8 @@
 import express from 'express';
 import multer from 'multer';
+import sharp from 'sharp';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import Worker from '../models/Worker.js';
 import User from '../models/User.js';
@@ -41,10 +43,10 @@ router.get('/worker', requireAuth, requireRole('worker'), async (req, res) => {
 // PUT /api/profile/worker — update text fields
 router.put('/worker', requireAuth, requireRole('worker'), async (req, res) => {
   try {
-    const { bio, areas, hourlyRate, experience, languages, available, phone, nidNumber } = req.body;
+    const { bio, areas, hourlyRate, experience, languages, available, phone, nidNumber, subcategories } = req.body;
     const worker = await Worker.findOneAndUpdate(
       { userId: req.user._id },
-      { bio, areas, hourlyRate: parseInt(hourlyRate) || undefined, experience: parseInt(experience) || 1, languages, available, phone, nidNumber: nidNumber || '' },
+      { bio, areas, hourlyRate: parseInt(hourlyRate) || undefined, experience: parseInt(experience) || 1, languages, available, phone, nidNumber: nidNumber || '', subcategories: subcategories || [] },
       { new: true }
     );
     if (!worker) return res.status(404).json({ message: 'Profile not found' });
@@ -52,16 +54,26 @@ router.put('/worker', requireAuth, requireRole('worker'), async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// POST /api/profile/worker/photo — profile photo
+/* Convert any uploaded image to WebP for smaller size & faster load */
+async function toWebP(filePath) {
+  try {
+    const webpPath = filePath.replace(/\.[^.]+$/, '.webp');
+    await sharp(filePath).resize(800, 800, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toFile(webpPath);
+    // Remove original if different file
+    if (webpPath !== filePath) fs.unlink(filePath, () => {});
+    return webpPath;
+  } catch { return filePath; }
+}
+
+// POST /api/profile/worker/photo — profile photo (→ WebP)
 router.post('/worker/photo', requireAuth, requireRole('worker'), upload.single('photo'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    const worker = await Worker.findOneAndUpdate(
-      { userId: req.user._id },
-      { photo: `/uploads/${req.file.filename}` },
-      { new: true }
-    );
-    res.json({ photo: `/uploads/${req.file.filename}`, worker });
+    const originalPath = req.file.path;
+    const webpPath     = await toWebP(originalPath);
+    const photoUrl     = `/uploads/${path.basename(webpPath)}`;
+    const worker       = await Worker.findOneAndUpdate({ userId: req.user._id }, { photo: photoUrl }, { new: true });
+    res.json({ photo: photoUrl, worker });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -90,10 +102,17 @@ router.post(
   async (req, res) => {
     try {
       const updates = {};
-      if (req.files?.nidFront?.[0])     updates.nidFront     = `/uploads/${req.files.nidFront[0].filename}`;
-      if (req.files?.nidBack?.[0])      updates.nidBack      = `/uploads/${req.files.nidBack[0].filename}`;
+      if (req.files?.nidFront?.[0])  {
+        const p = await toWebP(req.files.nidFront[0].path);
+        updates.nidFront = `/uploads/${path.basename(p)}`;
+      }
+      if (req.files?.nidBack?.[0]) {
+        const p = await toWebP(req.files.nidBack[0].path);
+        updates.nidBack = `/uploads/${path.basename(p)}`;
+      }
       if (req.files?.certificates?.length) {
-        updates.certificates = req.files.certificates.map((f) => `/uploads/${f.filename}`);
+        const converted = await Promise.all(req.files.certificates.map((f) => toWebP(f.path)));
+        updates.certificates = converted.map((p) => `/uploads/${path.basename(p)}`);
       }
       if (req.body.nidNumber) updates.nidNumber = req.body.nidNumber;
 

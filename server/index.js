@@ -7,8 +7,10 @@ import { fileURLToPath } from 'url';
 import workerRoutes  from './routes/workers.js';
 import authRoutes    from './routes/auth.js';
 import adminRoutes   from './routes/admin.js';
-import profileRoutes from './routes/profile.js';
-import configRoutes  from './routes/config.js';
+import profileRoutes   from './routes/profile.js';
+import configRoutes    from './routes/config.js';
+import analyticsRoutes from './routes/analytics.js';
+import bulkRoutes      from './routes/bulkupload.js';
 
 dotenv.config();
 
@@ -61,7 +63,9 @@ app.use('/api/workers',  workerRoutes);
 app.use('/api/auth',     authRoutes);
 app.use('/api/admin',    adminRoutes);
 app.use('/api/profile',  profileRoutes);
-app.use('/api/config',   configRoutes);
+app.use('/api/config',     configRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/bulk',      bulkRoutes);
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 
 mongoose

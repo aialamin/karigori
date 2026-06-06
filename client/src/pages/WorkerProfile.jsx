@@ -19,6 +19,9 @@ import { getCategoryInfo } from '../constants.js';
 import { CategoryIcon } from '../components/CategoryIcon.jsx';
 import { FloatInput, FloatTextarea, Alert, Spinner } from '../components/ui.jsx';
 import { BadgeRow } from '../components/VerificationBadge.jsx';
+import SEOHead from '../components/SEOHead.jsx';
+import { trackPhoneClick, trackWorkerView } from '../hooks/useAnalytics.js';
+import { addRecentWorker } from '../utils/cookies.js';
 
 /* ── Solid polygon star (crisper than Lucide stroke-based star) ── */
 function StarIcon({ filled, size = 18, className = '' }) {
@@ -396,7 +399,10 @@ export default function WorkerProfile() {
     try {
       const res = await fetch(`/api/workers/${id}`);
       if (!res.ok) throw new Error('Worker not found');
-      setWorker(await res.json());
+      const w = await res.json();
+      setWorker(w);
+      trackWorkerView();
+      addRecentWorker(w._id, w.name, w.category); // cookie
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }, [id]);
@@ -431,6 +437,22 @@ export default function WorkerProfile() {
 
   const cat = getCategoryInfo(worker.category);
 
+  const workerSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: worker.name,
+    jobTitle: cat.label,
+    description: worker.bio,
+    areaServed: worker.areas?.join(', '),
+    aggregateRating: worker.reviewCount > 0 ? {
+      '@type': 'AggregateRating',
+      ratingValue: worker.rating,
+      reviewCount: worker.reviewCount,
+      bestRating: 5,
+      worstRating: 1,
+    } : undefined,
+  };
+
   const TABS = [
     { key: 'about',   label: 'Overview',  shortLabel: 'Info',     icon: Info },
     { key: 'reviews', label: `Reviews (${worker.reviewCount || 0})`, shortLabel: 'Reviews', icon: Star },
@@ -440,6 +462,13 @@ export default function WorkerProfile() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
+      <SEOHead
+        title={`${worker.name} — ${cat.label} | ${worker.areas?.[0] || 'Bangladesh'}`}
+        description={`${worker.name} — বিশ্বস্ত ${cat.label} in ${worker.areas?.slice(0, 3).join(', ')}। ${worker.experience} বছরের অভিজ্ঞতা। রেটিং: ${worker.rating}/5 (${worker.reviewCount} রিভিউ)।`}
+        keywords={`${worker.name}, ${cat.label} ${worker.areas?.[0] || 'dhaka'}, ${cat.en || cat.label} ${worker.areas?.join(' ')} bangladesh`}
+        canonical={`/worker/${id}`}
+        schema={workerSchema}
+      />
 
       {/* ── Back ── */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6">
@@ -561,6 +590,20 @@ export default function WorkerProfile() {
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">About</h2>
                   <p className="text-gray-700 text-sm leading-relaxed">{worker.bio}</p>
+                </div>
+              )}
+
+              {/* Specialties / subcategories */}
+              {worker.subcategories?.length > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Specialties</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {worker.subcategories.map((s) => (
+                      <span key={s} className="text-xs font-semibold bg-brand-50 border border-brand-200 text-brand-700 px-2.5 py-1.5 rounded-full">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -695,7 +738,7 @@ export default function WorkerProfile() {
 
               <div className="p-5 space-y-3">
                 {!callRevealed ? (
-                  <button onClick={() => setCallRevealed(true)}
+                  <button onClick={() => { setCallRevealed(true); trackPhoneClick(); }}
                     className="w-full bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2.5 transition-all shadow-sm">
                     <Eye className="w-4 h-4 shrink-0" /><span>Show Phone Number</span>
                   </button>

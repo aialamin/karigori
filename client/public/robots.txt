@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Allow: /browse
+Allow: /worker/
+Allow: /disclaimer
+Allow: /privacy
+Allow: /terms
+
+# Private pages — no SEO value
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /account
+Disallow: /login
+Disallow: /register
+
+# Sitemaps
+Sitemap: https://karigori.org/sitemap.xml
+
+# Crawl delay (be nice to server)
+Crawl-delay: 1
