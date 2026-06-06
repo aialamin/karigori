@@ -5,7 +5,7 @@ import {
   Flower2, Footprints, Globe, Headphones, Key, Layers,
   Lightbulb, Monitor, Music, Palette, Phone, PenTool,
   Recycle, Settings, Sofa, Star, Sun, Thermometer,
-  ToolIcon, TreePine, Tv, Umbrella, Utensils, Waves, Wifi,
+  TreePine, Tv, Umbrella, Utensils, Waves, Wifi,
 } from 'lucide-react';
 
 /* ── Built-in category → icon ── */

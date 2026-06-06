@@ -14,7 +14,6 @@ import { parseNaturalQuery, getAIHints } from '../utils/aiSearch.js';
 import { searchServices } from '../data/categories.js';
 import { addSearchHistory, getSearchHistory, saveAreaPref } from '../utils/cookies.js';
 
-/* ── Cycling city names ── */
 const CITIES = [
   'গাজীপুরের', 'ঢাকার', 'চট্টগ্রামের', 'সিলেটের',
   'রাজশাহীর', 'খুলনার', 'বরিশালের', 'ময়মনসিংহের',
@@ -128,60 +127,58 @@ export default function Home() {
     <div className="flex flex-col bg-surface">
       <SEOHead canonical="/" keywords="plumber dhaka, electrician dhaka, AC repair dhaka, plumber gazipur, বিশ্বস্ত কারিগর বাংলাদেশ, karigori" />
 
-      {/* ══════════════════════════════════════
-          HERO — Navy premium
-      ══════════════════════════════════════ */}
-      <section className="relative bg-navy-900 text-white overflow-hidden">
-        {/* Decorative gradients */}
+      {/* ══════════ HERO — Bangladesh Green ══════════ */}
+      <section className="relative text-white overflow-hidden" style={{ background: 'linear-gradient(135deg, #006A4E 0%, #004d38 100%)' }}>
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-trust-500/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-trust-500/5 rounded-full blur-2xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-black/10 rounded-full blur-2xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         </div>
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-12 pb-16 sm:pt-16 sm:pb-20 text-center">
 
           {/* Trust badge */}
-          <div className="inline-flex items-center gap-2 bg-white/8 border border-white/15 text-white/80 text-xs font-semibold px-4 py-1.5 rounded-full mb-6">
-            <TrendingUp className="w-3.5 h-3.5 text-trust-400 shrink-0" />
+          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white/90 text-xs font-semibold px-4 py-1.5 rounded-full mb-6">
+            <TrendingUp className="w-3.5 h-3.5 text-yellow-300 shrink-0" />
             বাংলাদেশের #১ লোকাল সার্ভিস প্ল্যাটফর্ম
           </div>
 
           {/* H1 */}
           <h1 className="text-[28px] sm:text-4xl lg:text-[52px] font-black text-white mb-5" style={{ lineHeight: 1.18, letterSpacing: '-0.025em' }}>
             <span
-              className="text-trust-400"
+              className="text-yellow-300"
               style={{ transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: cityVisible ? 1 : 0, display: 'inline-block', transform: cityVisible ? 'translateY(0)' : 'translateY(-8px)' }}>
               {CITIES[cityIdx]}
-            </span>{' '}বিশ্বস্ত<br />
-            <span className="text-white">কারিগর খুঁজুন</span>
+            </span>{' '}বিশ্বস্ত<br className="sm:hidden" />
+            <span className="text-white sm:inline"> কারিগর খুঁজুন</span>
           </h1>
 
-          <p className="text-white/60 text-sm sm:text-base max-w-lg mx-auto mb-8" style={{ lineHeight: 1.7 }}>
+          <p className="text-white/70 text-sm sm:text-base max-w-lg mx-auto mb-8" style={{ lineHeight: 1.7 }}>
             যাচাইকৃত প্লাম্বার, ইলেক্ট্রিশিয়ান, ক্লিনার ও আরও পেশাদার —
             সরাসরি যোগাযোগ, কোনো কমিশন নেই।
           </p>
 
-          {/* Bengali permission modal */}
+          {/* Location permission modal */}
           {showLocPrompt && (
             <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center px-4" onClick={() => setShowLocPrompt(false)}>
               <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                <div className="bg-navy-900 px-6 pt-8 pb-6 text-center">
-                  <div className="w-16 h-16 bg-trust-500/20 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-trust-500/30">
-                    <Navigation className="w-8 h-8 text-trust-400" />
+                <div className="px-6 pt-8 pb-6 text-center" style={{ background: 'linear-gradient(135deg, #006A4E 0%, #004d38 100%)' }}>
+                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/30">
+                    <Navigation className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-white font-black text-xl" style={{ lineHeight: 1.3 }}>আপনার অবস্থান ব্যবহার করতে চাই</h3>
                 </div>
                 <div className="px-6 py-5">
-                  <p className="text-navy-900 text-sm text-center mb-1" style={{ lineHeight: 1.7 }}>আরও ভালো সার্চ ফলাফলের জন্য আমরা আপনার ডিভাইসের অবস্থান ব্যবহার করতে চাই।</p>
+                  <p className="text-gray-700 text-sm text-center mb-1" style={{ lineHeight: 1.7 }}>আরও ভালো সার্চ ফলাফলের জন্য আমরা আপনার ডিভাইসের অবস্থান ব্যবহার করতে চাই।</p>
                   <p className="text-slate-400 text-xs text-center mb-5">আমরা আপনার অবস্থান সংরক্ষণ করি না।</p>
                   <div className="flex flex-col gap-2">
                     <button onClick={() => { setShowLocPrompt(false); userLoc.detect(); }}
-                      className="w-full btn-primary py-3.5 justify-center text-base">
+                      className="w-full text-white font-bold py-3.5 rounded-full flex items-center justify-center gap-2 text-base transition-all"
+                      style={{ background: 'linear-gradient(135deg, #006A4E 0%, #004d38 100%)' }}>
                       <LocateFixed className="w-4 h-4 shrink-0" /> অনুমতি দিন
                     </button>
                     <button onClick={() => setShowLocPrompt(false)}
-                      className="w-full border-2 border-gray-200 text-slate-500 font-semibold py-3 rounded-btn text-sm">
+                      className="w-full border-2 border-gray-200 text-slate-500 font-semibold py-3 rounded-full text-sm">
                       এখন নয়
                     </button>
                   </div>
@@ -193,7 +190,7 @@ export default function Home() {
           {/* ── Search bar ── */}
           <div className="relative max-w-2xl mx-auto" ref={dropdownRef}>
             <div className={`flex items-center bg-white rounded-2xl overflow-hidden transition-all duration-200
-              ${focused ? 'ring-3 ring-trust-400 shadow-[0_0_0_3px_rgba(34,197,94,0.25),0_20px_60px_rgba(0,0,0,0.3)]' : 'shadow-[0_8px_40px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_50px_rgba(0,0,0,0.4)]'}`}>
+              ${focused ? 'ring-3 ring-yellow-300/50 shadow-[0_0_0_3px_rgba(253,224,71,0.3),0_20px_60px_rgba(0,0,0,0.3)]' : 'shadow-[0_8px_40px_rgba(0,0,0,0.3)]'}`}>
               <Search className="w-5 h-5 text-slate-400 ml-4 shrink-0" />
               <input
                 ref={inputRef}
@@ -203,19 +200,20 @@ export default function Home() {
                 onFocus={() => setFocused(true)}
                 onKeyDown={(e) => { if (e.key === 'Enter') search(query); if (e.key === 'Escape') setFocused(false); }}
                 placeholder="প্লাম্বার, এসি মেকানিক বা এলাকা লিখুন…"
-                className="flex-1 px-3 py-5 text-navy-900 text-sm font-medium outline-none bg-transparent placeholder-slate-400"
+                className="flex-1 px-3 py-5 text-gray-900 text-sm font-medium outline-none bg-transparent placeholder-slate-400"
               />
               {query
-                ? <button onClick={() => { setQuery(''); setSvcResults([]); inputRef.current?.focus(); }} className="p-1.5 mr-1 text-slate-400 hover:text-navy-900 transition-colors"><X className="w-4 h-4" /></button>
+                ? <button onClick={() => { setQuery(''); setSvcResults([]); inputRef.current?.focus(); }} className="p-1.5 mr-1 text-slate-400 hover:text-gray-700 transition-colors"><X className="w-4 h-4" /></button>
                 : <button onClick={() => userLoc.area ? navigate(`/browse?q=${encodeURIComponent(userLoc.area)}`) : setShowLocPrompt(true)}
                     disabled={userLoc.loading}
                     className={`flex items-center gap-1.5 mx-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all shrink-0
-                      ${userLoc.area ? 'bg-trust-50 text-trust-700 border border-trust-300' : 'text-slate-400 hover:text-trust-600 hover:bg-gray-50'}`}>
+                      ${userLoc.area ? 'bg-green-50 text-green-700 border border-green-300' : 'text-slate-400 hover:text-green-600 hover:bg-gray-50'}`}>
                     {userLoc.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><LocateFixed className="w-3.5 h-3.5 shrink-0" /><span className="hidden sm:inline">{userLoc.area || 'কাছের'}</span></>}
                   </button>
               }
               <button onClick={() => search(query)}
-                className="m-2 bg-trust-500 hover:bg-trust-600 active:scale-95 text-white font-bold px-6 py-3 rounded-xl transition-all shrink-0 text-sm shadow-trust">
+                className="m-2 text-white font-bold px-6 py-3 rounded-xl transition-all shrink-0 text-sm"
+                style={{ background: 'linear-gradient(135deg, #006A4E 0%, #16a34a 100%)' }}>
                 খুঁজুন
               </button>
             </div>
@@ -223,19 +221,18 @@ export default function Home() {
             {/* Dropdown */}
             {focused && (
               <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50">
-                {/* Service matches */}
                 {serviceResults.length > 0 && (
                   <>
                     <div className="px-4 pt-3 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">সার্ভিস ম্যাচ</div>
                     {serviceResults.slice(0, 4).map((r, i) => (
                       <button key={i} onMouseDown={() => { addSearchHistory(r.subcategory.label); navigate(`/browse/${r.categoryKey}?q=${encodeURIComponent(r.subcategory.label)}`); setFocused(false); }}
-                        className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-trust-50 transition-colors">
+                        className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-green-50 transition-colors">
                         <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
                           style={{ background: getCategoryBg(r.categoryKey) }}>
                           <CategoryIcon category={r.categoryKey} size={16} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy-900">{r.subcategory.label}</p>
+                          <p className="text-sm font-semibold text-gray-900">{r.subcategory.label}</p>
                           <p className="text-[11px] text-slate-400 truncate">{r.matchedServices.slice(0, 3).join(' · ')}</p>
                         </div>
                         <ChevronRight className="w-4 h-4 text-slate-300 shrink-0 mt-1" />
@@ -245,22 +242,20 @@ export default function Home() {
                   </>
                 )}
 
-                {/* AI result */}
                 {aiResult && (
-                  <div className="bg-gradient-to-r from-trust-50 to-emerald-50 border-b border-trust-100 px-4 py-3">
+                  <div className="bg-green-50 border-b border-green-100 px-4 py-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-6 h-6 bg-trust-500 rounded-lg flex items-center justify-center shrink-0">
+                      <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#006A4E' }}>
                         <span className="text-white text-[9px] font-black">AI</span>
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs font-semibold text-trust-700">{aiResult.suggestion}</p>
+                        <p className="text-xs font-semibold text-green-700">{aiResult.suggestion}</p>
                       </div>
-                      <button onMouseDown={() => search(query)} className="shrink-0 bg-trust-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg">খুঁজুন</button>
+                      <button onMouseDown={() => search(query)} className="shrink-0 text-white text-xs font-bold px-3 py-1.5 rounded-lg" style={{ background: '#006A4E' }}>খুঁজুন</button>
                     </div>
                   </div>
                 )}
 
-                {/* Recent searches */}
                 {!query && getSearchHistory().length > 0 && (
                   <>
                     <div className="px-4 pt-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">সাম্প্রতিক</div>
@@ -268,14 +263,13 @@ export default function Home() {
                       <button key={i} onMouseDown={() => { setQuery(h); search(h); }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors">
                         <span className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 text-gray-400 text-xs">↩</span>
-                        <span className="text-sm text-navy-900 truncate">{h}</span>
+                        <span className="text-sm text-gray-900 truncate">{h}</span>
                       </button>
                     ))}
                     <div className="border-t border-gray-50 my-1" />
                   </>
                 )}
 
-                {/* Category suggestions */}
                 <div className="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                   {query ? 'ফলাফল' : 'সাজেশন'}
                 </div>
@@ -287,7 +281,7 @@ export default function Home() {
                       : <span className="w-7 h-7 rounded-xl bg-gray-100 flex items-center justify-center shrink-0"><MapPin className="w-3.5 h-3.5 text-slate-400" /></span>
                     }
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-navy-900 truncate">{s.label}</p>
+                      <p className="text-sm font-medium text-gray-900 truncate">{s.label}</p>
                       {s.labelBn && <p className="text-[11px] text-slate-400">{s.labelBn}</p>}
                     </div>
                     <ChevronRight className="w-3.5 h-3.5 text-gray-200 ml-auto shrink-0" />
@@ -301,12 +295,12 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-2 mt-5">
             {CATEGORIES.map((c) => (
               <button key={c.key} onClick={() => navigate(`/browse/${c.key}`)}
-                className="flex items-center gap-1.5 border border-white/15 text-white/80 text-xs font-medium px-3 py-1.5 rounded-full transition-all active:scale-95 hover:bg-white/10"
-                style={{ background: 'rgba(255,255,255,0.07)' }}>
+                className="flex items-center gap-1.5 border border-white/20 text-white/85 text-xs font-medium px-3 py-1.5 rounded-full transition-all active:scale-95 hover:bg-white/15"
+                style={{ background: 'rgba(255,255,255,0.1)' }}>
                 <CategoryIcon category={c.key} size={11} /> {c.labelBn}
               </button>
             ))}
-            <Link to="/browse" className="flex items-center gap-1 bg-trust-500/20 border border-trust-500/30 text-trust-300 text-xs font-bold px-3 py-1.5 rounded-full">
+            <Link to="/browse" className="flex items-center gap-1 bg-yellow-300/20 border border-yellow-300/40 text-yellow-200 text-xs font-bold px-3 py-1.5 rounded-full">
               সব →
             </Link>
           </div>
@@ -315,19 +309,19 @@ export default function Home() {
           {(userLoc.area || userLoc.loading) && (
             <div className="flex items-center justify-center mt-5">
               {userLoc.loading && (
-                <div className="flex items-center gap-2 bg-white/8 border border-white/15 rounded-full px-4 py-2 text-sm text-white/70">
-                  <Loader2 className="w-4 h-4 animate-spin text-trust-400 shrink-0" /> অবস্থান সনাক্ত হচ্ছে…
+                <div className="flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2 text-sm text-white/70">
+                  <Loader2 className="w-4 h-4 animate-spin text-yellow-300 shrink-0" /> অবস্থান সনাক্ত হচ্ছে…
                 </div>
               )}
               {userLoc.area && !userLoc.loading && (
-                <div className="flex items-center gap-2.5 bg-white/8 border border-white/15 rounded-2xl px-4 py-2.5 flex-wrap justify-center gap-y-1.5">
-                  <Navigation className="w-4 h-4 text-trust-400 shrink-0" />
-                  <span className="text-sm text-white/80">সনাক্ত: <strong className="text-trust-300">{userLoc.area}</strong></span>
+                <div className="flex items-center gap-2.5 bg-white/10 border border-white/20 rounded-2xl px-4 py-2.5 flex-wrap justify-center gap-y-1.5">
+                  <Navigation className="w-4 h-4 text-yellow-300 shrink-0" />
+                  <span className="text-sm text-white/80">সনাক্ত: <strong className="text-yellow-300">{userLoc.area}</strong></span>
                   <button onClick={() => navigate(`/browse?q=${encodeURIComponent(userLoc.area)}`)}
-                    className="bg-trust-500 hover:bg-trust-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shrink-0">
+                    className="text-white text-xs font-bold px-3 py-1.5 rounded-full shrink-0 bg-white/20 hover:bg-white/30">
                     এখানে কারিগর →
                   </button>
-                  <button onClick={userLoc.clear} className="text-white/30 hover:text-white/70 transition-colors"><X className="w-3.5 h-3.5" /></button>
+                  <button onClick={userLoc.clear} className="text-white/40 hover:text-white/70 transition-colors"><X className="w-3.5 h-3.5" /></button>
                 </div>
               )}
             </div>
@@ -336,7 +330,7 @@ export default function Home() {
       </section>
 
       {/* ── Stats band ── */}
-      <section className="bg-navy-950 border-t border-white/5">
+      <section className="border-t border-white/10" style={{ background: '#004d38' }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-3 divide-x divide-white/10">
           {[
             { target: 30,  suffix: '+', label: 'যাচাইকৃত কারিগর',  sub: 'Verified Workers' },
@@ -344,7 +338,7 @@ export default function Home() {
             { target: 500, suffix: '+', label: 'বাংলাদেশের এলাকা',  sub: 'Locations' },
           ].map(({ target, suffix, label, sub }) => (
             <div key={label} className="flex flex-col items-center text-center px-4 py-2">
-              <span className="text-3xl sm:text-4xl font-black text-trust-400" style={{ letterSpacing: '-0.03em' }}>
+              <span className="text-3xl sm:text-4xl font-black text-yellow-300" style={{ letterSpacing: '-0.03em' }}>
                 <CountUp target={target} suffix={suffix} />
               </span>
               <span className="text-xs sm:text-sm font-semibold text-white/70 mt-1">{label}</span>
@@ -356,13 +350,13 @@ export default function Home() {
 
       {/* ── Trust chips ── */}
       <section className="bg-white border-b border-gray-100 overflow-x-auto scrollbar-hide">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3 flex-nowrap">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-center gap-3 flex-nowrap">
           {[
-            { icon: BadgeCheck, label: 'NID যাচাইকৃত', color: 'text-trust-600 bg-trust-50 border-trust-200' },
-            { icon: Phone,      label: 'ফোন যাচাইকৃত', color: 'text-amber-600 bg-amber-50 border-amber-200' },
-            { icon: ShieldCheck,label: 'কোনো কমিশন নেই', color: 'text-blue-600 bg-blue-50 border-blue-200' },
-            { icon: Zap,        label: 'সরাসরি যোগাযোগ', color: 'text-purple-600 bg-purple-50 border-purple-200' },
-            { icon: Star,       label: 'রিয়েল রিভিউ', color: 'text-orange-600 bg-orange-50 border-orange-200' },
+            { icon: BadgeCheck,  label: 'NID যাচাইকৃত',    color: 'text-green-700 bg-green-50 border-green-200' },
+            { icon: Phone,       label: 'ফোন যাচাইকৃত',    color: 'text-amber-600 bg-amber-50 border-amber-200' },
+            { icon: ShieldCheck, label: 'কোনো কমিশন নেই',  color: 'text-blue-600 bg-blue-50 border-blue-200' },
+            { icon: Zap,         label: 'সরাসরি যোগাযোগ',  color: 'text-purple-600 bg-purple-50 border-purple-200' },
+            { icon: Star,        label: 'রিয়েল রিভিউ',     color: 'text-orange-600 bg-orange-50 border-orange-200' },
           ].map(({ icon: Icon, label, color }) => (
             <span key={label} className={`inline-flex items-center gap-1.5 shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border ${color}`}>
               <Icon className="w-3.5 h-3.5 shrink-0" /> {label}
@@ -374,12 +368,10 @@ export default function Home() {
       {/* ── Categories ── */}
       <section className="py-14 bg-surface">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="flex items-end justify-between mb-8">
-            <div>
-              <h2 className="section-title">কী সার্ভিস দরকার?</h2>
-              <p className="section-sub">৮টি ক্যাটাগরিতে যাচাইকৃত পেশাদার</p>
-            </div>
-            <Link to="/browse" className="text-sm font-semibold text-trust-600 hover:text-trust-700 flex items-center gap-1">
+          <div className="text-center mb-8">
+            <h2 className="section-title">কী সার্ভিস দরকার?</h2>
+            <p className="section-sub">৮টি ক্যাটাগরিতে যাচাইকৃত পেশাদার</p>
+            <Link to="/browse" className="inline-flex items-center gap-1 mt-3 text-sm font-semibold text-green-700 hover:text-green-800">
               সব দেখুন <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -387,8 +379,7 @@ export default function Home() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {CATEGORIES.map((cat) => (
               <button key={cat.key} onClick={() => navigate(`/browse/${cat.key}`)}
-                className="group flex flex-col items-center gap-3 p-5 rounded-card border border-gray-100 bg-white hover:border-current hover:shadow-card-hover transition-all duration-200 cursor-pointer"
-                style={{ '--cat': cat.color }}>
+                className="group flex flex-col items-center gap-3 p-5 rounded-card border border-gray-100 bg-white hover:shadow-card-hover transition-all duration-200 cursor-pointer">
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm"
                   style={{ background: cat.bg, color: cat.color }}>
                   <CategoryIcon category={cat.key} size={28} />
@@ -411,18 +402,18 @@ export default function Home() {
             <p className="section-sub">সহজ, দ্রুত, বিশ্বস্ত</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 relative">
-            <div className="hidden sm:block absolute top-10 left-[calc(33%+2rem)] right-[calc(33%+2rem)] h-0.5 bg-gradient-to-r from-trust-200 via-trust-400 to-trust-200" />
+            <div className="hidden sm:block absolute top-10 left-[calc(33%+2rem)] right-[calc(33%+2rem)] h-0.5 bg-gradient-to-r from-green-200 via-green-400 to-green-200" />
             {[
               { n: '01', icon: Search,   title: 'কারিগর খুঁজুন',       desc: 'এলাকা ও সার্ভিস দিয়ে ফিল্টার করুন, রেটিং দেখুন।' },
               { n: '02', icon: Star,     title: 'প্রোফাইল দেখুন',       desc: 'রেটিং, অভিজ্ঞতা ও যাচাইকরণ স্ট্যাটাস চেক করুন।' },
               { n: '03', icon: Phone,    title: 'সরাসরি যোগাযোগ করুন', desc: 'কোনো মধ্যস্থতাকারী নেই — সরাসরি কল করুন।' },
             ].map(({ n, icon: Icon, title, desc }) => (
               <div key={n} className="relative flex flex-col items-center text-center p-6 bg-surface rounded-card border border-gray-100 hover:shadow-card transition-all">
-                <div className="absolute -top-3 -right-3 w-7 h-7 bg-trust-500 rounded-full flex items-center justify-center text-white text-[10px] font-black shadow-trust">{n}</div>
-                <div className="w-14 h-14 bg-navy-900 rounded-2xl flex items-center justify-center mb-4 shadow-navy">
+                <div className="absolute -top-3 -right-3 w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-black shadow-md" style={{ background: '#006A4E' }}>{n}</div>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-md" style={{ background: '#006A4E' }}>
                   <Icon className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="font-bold text-navy-900 mb-2">{title}</h3>
+                <h3 className="font-bold text-gray-900 mb-2">{title}</h3>
                 <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
@@ -432,7 +423,7 @@ export default function Home() {
 
       {/* ── Reviews marquee ── */}
       <section className="py-14 bg-surface border-t border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-8 text-center">
           <h2 className="section-title">ব্যবহারকারীদের অভিজ্ঞতা</h2>
           <p className="section-sub">বাস্তব রিভিউ, বাস্তব মানুষ</p>
         </div>
@@ -448,14 +439,14 @@ export default function Home() {
                     </svg>
                   ))}
                 </div>
-                <p className="text-navy-900 text-sm leading-relaxed flex-1">"{t.text}"</p>
+                <p className="text-gray-800 text-sm leading-relaxed flex-1">"{t.text}"</p>
                 <div className="flex items-center gap-2.5 pt-2.5 border-t border-gray-50">
-                  <div className="w-8 h-8 bg-navy-900 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0">{t.name[0]}</div>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{ background: '#006A4E' }}>{t.name[0]}</div>
                   <div>
-                    <p className="text-sm font-bold text-navy-900">{t.name}</p>
+                    <p className="text-sm font-bold text-gray-900">{t.name}</p>
                     <p className="text-xs text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" />{t.area}</p>
                   </div>
-                  <CheckCircle2 className="w-4 h-4 text-trust-500 ml-auto shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-green-600 ml-auto shrink-0" />
                 </div>
               </div>
             ))}
@@ -472,16 +463,16 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { icon: BadgeCheck, color: 'bg-trust-100 text-trust-600', title: 'NID যাচাইকৃত', desc: 'ফোন নম্বর ও পরিচয়পত্র (NID) যাচাই করা হয়।' },
-              { icon: ShieldCheck, color: 'bg-blue-100 text-blue-600', title: 'কোনো কমিশন নেই', desc: 'সরাসরি কারিগরের সাথে কথা বলুন, কোনো ফি নেই।' },
-              { icon: Star, color: 'bg-amber-100 text-amber-600', title: 'রিয়েল রিভিউ', desc: 'সব রেটিং বাস্তব ব্যবহারকারীদের কাছ থেকে।' },
+              { icon: BadgeCheck,  color: 'bg-green-100 text-green-700',  title: 'NID যাচাইকৃত',    desc: 'ফোন নম্বর ও পরিচয়পত্র (NID) যাচাই করা হয়।' },
+              { icon: ShieldCheck, color: 'bg-blue-100 text-blue-600',    title: 'কোনো কমিশন নেই', desc: 'সরাসরি কারিগরের সাথে কথা বলুন, কোনো ফি নেই।' },
+              { icon: Star,        color: 'bg-amber-100 text-amber-600',  title: 'রিয়েল রিভিউ',    desc: 'সব রেটিং বাস্তব ব্যবহারকারীদের কাছ থেকে।' },
             ].map(({ icon: Icon, color, title, desc }) => (
               <div key={title} className="flex items-start gap-4 p-5 bg-surface rounded-card border border-gray-100">
                 <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${color}`}>
                   <Icon className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-navy-900 mb-1">{title}</h3>
+                  <h3 className="font-bold text-gray-900 mb-1">{title}</h3>
                   <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
                 </div>
               </div>
@@ -508,10 +499,20 @@ export default function Home() {
               { q: 'ঢাকায় ভালো প্লাম্বার কোথায় পাবো?', a: 'কারিগরি প্ল্যাটফর্মে ঢাকার সব এলাকায় যাচাইকৃত প্লাম্বার পাবেন। ফোন নম্বর দেখে সরাসরি যোগাযোগ করুন — কোনো কমিশন নেই।' },
               { q: 'গাজীপুরে ইলেক্ট্রিশিয়ান পাবো কোথায়?', a: 'কারিগরিতে গাজীপুরের যাচাইকৃত ইলেক্ট্রিশিয়ান আছেন। Browse করুন, রেটিং দেখুন এবং সরাসরি কল করুন।' },
               { q: 'কারিগরি কি সম্পূর্ণ বিনামূল্যে?', a: 'হ্যাঁ, কারিগরি ব্যবহার সম্পূর্ণ বিনামূল্যে। কোনো বুকিং ফি বা কমিশন নেই।' },
-              { q: 'How to find a trusted plumber in Dhaka?', a: 'Use Karigori — Bangladesh\'s #1 local service platform. Find verified plumbers, check ratings, call directly. No commission.' },
+              { q: 'কারিগররা কি যাচাইকৃত?', a: 'হ্যাঁ, সব কারিগরের ফোন নম্বর যাচাই করা হয়। অনেক কারিগরের NID যাচাইকরণও সম্পন্ন। প্রোফাইলে ভেরিফিকেশন ব্যাজ দেখে বুঝতে পারবেন।' },
+              { q: 'কারিগরের সাথে কীভাবে যোগাযোগ করবো?', a: 'কারিগরের প্রোফাইলে সরাসরি ফোন নম্বর দেওয়া আছে। কোনো মধ্যস্থতাকারী বা অ্যাপ নেই — সরাসরি কল করুন।' },
+              { q: 'এসি মেকানিক কোথায় পাবো?', a: 'কারিগরিতে ঢাকা, গাজীপুর, চট্টগ্রামসহ সারাদেশে যাচাইকৃত এসি মেকানিক আছেন। AC Repair ক্যাটাগরিতে ক্লিক করুন।' },
+              { q: 'কারিগর হিসেবে নিজের প্রোফাইল কীভাবে যোগ করবো?', a: '"কারিগর হিসেবে যোগ দিন" বাটনে ক্লিক করুন। বিনামূল্যে রেজিস্ট্রেশন করুন, প্রোফাইল তৈরি করুন এবং গ্রাহক পেতে শুরু করুন।' },
+              { q: 'বাসা পরিষ্কারের জন্য ক্লিনার কোথায় পাবো?', a: 'কারিগরিতে Cleaner ও বুয়া সার্ভিস ক্যাটাগরিতে আপনার এলাকার যাচাইকৃত ক্লিনার খুঁজুন। রেটিং দেখে নির্বাচন করুন।' },
+              { q: 'কাঠমিস্ত্রি কোথায় পাবো?', a: 'কারিগরিতে Carpenter ক্যাটাগরিতে আপনার এলাকার অভিজ্ঞ কাঠমিস্ত্রি খুঁজুন। ফার্নিচার তৈরি, মেরামত সব কাজ করেন।' },
+              { q: 'পেইন্টার কোথায় পাওয়া যাবে?', a: 'কারিগরিতে Painter ক্যাটাগরিতে ঢাকা ও সারাদেশের যাচাইকৃত পেইন্টার আছেন। বাড়ি বা অফিস রং করার জন্য সরাসরি যোগাযোগ করুন।' },
+              { q: 'গ্যাস লাইনের সমস্যায় কাকে ডাকবো?', a: 'কারিগরিতে Gas Fitter ক্যাটাগরিতে যাচাইকৃত গ্যাস ফিটার পাবেন। লিক, চুলার সমস্যা বা নতুন সংযোগ — সরাসরি কল করুন।' },
+              { q: 'সার্ভিসের দাম কত?', a: 'প্রতিটি কারিগরের প্রোফাইলে আনুমানিক রেট দেওয়া থাকে। কারিগরের সাথে সরাসরি কথা বলে দাম নির্ধারণ করুন — কোনো মধ্যস্থতাকারী নেই।' },
+              { q: 'চট্টগ্রামে কারিগর পাবো কি?', a: 'হ্যাঁ, কারিগরিতে চট্টগ্রামের যাচাইকৃত প্লাম্বার, ইলেক্ট্রিশিয়ান, এসি মেকানিকসহ সব ধরনের কারিগর আছেন।' },
+              { q: 'How to find a trusted plumber in Dhaka?', a: "Use Karigori — Bangladesh's #1 local service platform. Find verified plumbers, check ratings, call directly. No commission." },
             ].map(({ q, a }) => (
               <details key={q} className="group bg-white border border-gray-100 rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-all">
-                <summary className="flex items-start justify-between p-4 cursor-pointer font-semibold text-navy-900 text-sm list-none gap-2">
+                <summary className="flex items-start justify-between p-4 cursor-pointer font-semibold text-gray-900 text-sm list-none gap-2">
                   <span>{q}</span>
                   <ChevronRight className="w-4 h-4 text-slate-400 group-open:rotate-90 transition-transform shrink-0 mt-0.5" />
                 </summary>
@@ -523,17 +524,18 @@ export default function Home() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="py-16 bg-navy-900">
+      <section className="py-16" style={{ background: 'linear-gradient(135deg, #006A4E 0%, #004d38 100%)' }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-2xl sm:text-3xl font-black text-white mb-3" style={{ letterSpacing: '-0.02em' }}>এখনই সাহায্য দরকার?</h2>
-          <p className="text-white/50 text-sm mb-8">ঢাকার সব যাচাইকৃত কারিগর ব্রাউজ করুন</p>
+          <p className="text-white/60 text-sm mb-8">ঢাকার সব যাচাইকৃত কারিগর ব্রাউজ করুন</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button onClick={() => navigate('/browse')}
-              className="btn-primary text-base px-8 py-4 shadow-trust">
+              className="inline-flex items-center gap-2 bg-white font-bold px-8 py-4 rounded-full text-base transition-all hover:bg-gray-100 shadow-lg"
+              style={{ color: '#006A4E' }}>
               সকল কারিগর দেখুন <ArrowRight className="w-5 h-5 shrink-0" />
             </button>
             <Link to="/register"
-              className="border-2 border-white/20 text-white font-bold px-8 py-4 rounded-btn hover:bg-white/10 transition-all text-sm">
+              className="border-2 border-white/30 text-white font-bold px-8 py-4 rounded-full hover:bg-white/10 transition-all text-sm">
               কারিগর হিসেবে যোগ দিন
             </Link>
           </div>
