@@ -12,11 +12,22 @@ async function getOrCreate() {
 
 /* ── Public ─────────────────────────────────────────────────────── */
 
-// GET /api/config  — extra categories + extra areas
+// GET /api/config  — extra categories + extra areas + notice
 router.get('/', async (req, res) => {
   try {
     const c = await getOrCreate();
-    res.json({ extraCategories: c.extraCategories, extraAreas: c.extraAreas });
+    res.json({ extraCategories: c.extraCategories, extraAreas: c.extraAreas, notice: c.notice });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// PUT /api/config/notice — admin sets/clears the site notice
+router.put('/notice', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { active, title, subtitle, message, type } = req.body;
+    const c = await getOrCreate();
+    c.notice = { active: !!active, title: title || '', subtitle: subtitle || '', message: message || '', type: type || 'info' };
+    await c.save();
+    res.json({ notice: c.notice });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

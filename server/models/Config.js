@@ -16,6 +16,15 @@ const configSchema = new mongoose.Schema({
 
   /* Extra areas/districts beyond the Bangladesh defaults */
   extraAreas: [{ type: String }],
+
+  /* Admin notice — shown as modal on first load */
+  notice: {
+    active:   { type: Boolean, default: false },
+    title:    { type: String,  default: '' },
+    subtitle: { type: String,  default: '' },
+    message:  { type: String,  default: '' },
+    type:     { type: String,  default: 'info', enum: ['info','warning','success','urgent'] },
+  },
 }, { timestamps: true });
 
 export default mongoose.model('Config', configSchema);

@@ -212,8 +212,8 @@ export default function Home() {
                   </button>
               }
               <button onClick={() => search(query)}
-                className="m-2 text-white font-bold px-6 py-3 rounded-xl transition-all shrink-0 text-sm"
-                style={{ background: 'linear-gradient(135deg, #006A4E 0%, #16a34a 100%)' }}>
+                className="m-2 text-white font-bold px-6 py-3 rounded-xl transition-all shrink-0 text-sm active:scale-95"
+                style={{ background: '#004d38' }}>
                 খুঁজুন
               </button>
             </div>
@@ -348,22 +348,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Trust chips ── */}
-      <section className="bg-white border-b border-gray-100 overflow-x-auto scrollbar-hide">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-center gap-3 flex-nowrap">
-          {[
-            { icon: BadgeCheck,  label: 'NID যাচাইকৃত',    color: 'text-green-700 bg-green-50 border-green-200' },
-            { icon: Phone,       label: 'ফোন যাচাইকৃত',    color: 'text-amber-600 bg-amber-50 border-amber-200' },
-            { icon: ShieldCheck, label: 'কোনো কমিশন নেই',  color: 'text-blue-600 bg-blue-50 border-blue-200' },
-            { icon: Zap,         label: 'সরাসরি যোগাযোগ',  color: 'text-purple-600 bg-purple-50 border-purple-200' },
-            { icon: Star,        label: 'রিয়েল রিভিউ',     color: 'text-orange-600 bg-orange-50 border-orange-200' },
-          ].map(({ icon: Icon, label, color }) => (
-            <span key={label} className={`inline-flex items-center gap-1.5 shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border ${color}`}>
-              <Icon className="w-3.5 h-3.5 shrink-0" /> {label}
-            </span>
-          ))}
-        </div>
-      </section>
+      {/* ── Trust chips — auto-scroll on mobile ── */}
+      <TrustChips />
 
       {/* ── Categories ── */}
       <section className="py-14 bg-surface">
@@ -478,13 +464,6 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
-            <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800 leading-relaxed">
-              <strong>গুরুত্বপূর্ণ:</strong> যাচাইকরণ সম্পূর্ণ নিরাপত্তার নিশ্চয়তা দেয় না।{' '}
-              <Link to="/disclaimer" className="underline font-semibold">সম্পূর্ণ নীতিমালা পড়ুন →</Link>
-            </p>
-          </div>
         </div>
       </section>
 
@@ -520,6 +499,12 @@ export default function Home() {
               </details>
             ))}
           </div>
+
+          {/* Disclaimer — subtle footnote */}
+          <p className="text-center text-xs text-slate-400 mt-6">
+            ⚠️ যাচাইকরণ সম্পূর্ণ নিরাপত্তার নিশ্চয়তা দেয় না।{' '}
+            <Link to="/disclaimer" className="underline hover:text-slate-600">নীতিমালা পড়ুন →</Link>
+          </p>
         </div>
       </section>
 
@@ -530,12 +515,12 @@ export default function Home() {
           <p className="text-white/60 text-sm mb-8">ঢাকার সব যাচাইকৃত কারিগর ব্রাউজ করুন</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button onClick={() => navigate('/browse')}
-              className="inline-flex items-center gap-2 bg-white font-bold px-8 py-4 rounded-full text-base transition-all hover:bg-gray-100 shadow-lg"
-              style={{ color: '#006A4E' }}>
+              className="inline-flex items-center gap-2 bg-white font-bold px-8 py-4 rounded-full text-base transition-all hover:bg-gray-100 active:scale-95 shadow-xl"
+              style={{ color: '#004d38' }}>
               সকল কারিগর দেখুন <ArrowRight className="w-5 h-5 shrink-0" />
             </button>
             <Link to="/register"
-              className="border-2 border-white/30 text-white font-bold px-8 py-4 rounded-full hover:bg-white/10 transition-all text-sm">
+              className="border-2 border-white/40 text-white font-bold px-8 py-4 rounded-full hover:bg-white/15 active:scale-95 transition-all text-sm">
               কারিগর হিসেবে যোগ দিন
             </Link>
           </div>
@@ -545,6 +530,77 @@ export default function Home() {
       {/* Mobile bottom padding for BottomNav */}
       <div className="h-16 md:hidden" />
     </div>
+  );
+}
+
+/* ── Auto-scrolling trust chips ── */
+const CHIPS = [
+  { icon: BadgeCheck,  label: 'NID যাচাইকৃত',    sub: 'পরিচয় নিশ্চিত',  iconBg: '#004d38', pillBg: '#f0fdf4', pillBorder: '#86efac', textColor: '#14532d' },
+  { icon: Phone,       label: 'ফোন যাচাইকৃত',    sub: 'নম্বর সত্যিকার',  iconBg: '#92400e', pillBg: '#fffbeb', pillBorder: '#fcd34d', textColor: '#78350f' },
+  { icon: ShieldCheck, label: 'কোনো কমিশন নেই',  sub: '১০০% ফ্রি',       iconBg: '#1e3a8a', pillBg: '#eff6ff', pillBorder: '#93c5fd', textColor: '#1e3a8a' },
+  { icon: Zap,         label: 'সরাসরি যোগাযোগ',  sub: 'মধ্যস্থতা নেই',  iconBg: '#4c1d95', pillBg: '#f5f3ff', pillBorder: '#c4b5fd', textColor: '#3b0764' },
+  { icon: Star,        label: 'রিয়েল রিভিউ',     sub: 'বাস্তব অভিজ্ঞতা', iconBg: '#7c2d12', pillBg: '#fff7ed', pillBorder: '#fdba74', textColor: '#7c2d12' },
+];
+
+function TrustChips() {
+  const trackRef = useRef(null);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    let raf;
+    let pos = 0;
+    const speed = 0.7;
+    const half = () => el.scrollWidth / 2;
+
+    const tick = () => {
+      if (!el.matches(':hover')) {
+        pos += speed;
+        if (pos >= half()) pos = 0;
+        el.scrollLeft = pos;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+
+    // Only run on mobile
+    const mq = window.matchMedia('(max-width: 639px)');
+    if (mq.matches) raf = requestAnimationFrame(tick);
+    const onChange = (e) => {
+      if (e.matches) raf = requestAnimationFrame(tick);
+      else cancelAnimationFrame(raf);
+    };
+    mq.addEventListener('change', onChange);
+    return () => { cancelAnimationFrame(raf); mq.removeEventListener('change', onChange); };
+  }, []);
+
+  const chip = ({ icon: Icon, label, sub, iconBg, pillBg, pillBorder, textColor }, i) => (
+    <div key={i}
+      className="flex items-center gap-3 px-4 py-3 rounded-2xl shrink-0 transition-all duration-200 hover:scale-105 hover:shadow-md select-none"
+      style={{ background: pillBg, border: `2px solid ${pillBorder}` }}>
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-md" style={{ background: iconBg }}>
+        <Icon style={{ width: 18, height: 18, color: '#fff' }} />
+      </div>
+      <div>
+        <p className="text-xs font-black leading-tight" style={{ color: textColor }}>{label}</p>
+        <p className="text-[10px] font-semibold mt-0.5" style={{ color: textColor, opacity: 0.6 }}>{sub}</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <section className="bg-white border-b border-gray-100 py-5">
+      {/* ── Mobile: infinite auto-scroll (doubled list) ── */}
+      <div ref={trackRef} className="sm:hidden overflow-x-auto scrollbar-hide">
+        <div className="flex items-stretch gap-3 px-4 flex-nowrap" style={{ width: 'max-content' }}>
+          {[...CHIPS, ...CHIPS].map(chip)}
+        </div>
+      </div>
+
+      {/* ── Desktop: single centered row, no repeat ── */}
+      <div className="hidden sm:flex items-stretch justify-center gap-3 px-6">
+        {CHIPS.map(chip)}
+      </div>
+    </section>
   );
 }
 

@@ -5,6 +5,7 @@ import {
   CreditCard, FileText, Star, StickyNote, Calendar, Mail,
   ShieldCheck, AlertCircle, ZoomIn, ShieldAlert, Upload, Download,
   Flag, AlertTriangle, Eye, MousePointerClick, Search as SearchIcon, TrendingUp,
+  LayoutGrid, Zap,
 } from 'lucide-react';
 import { getLevelInfo } from '../components/VerificationBadge.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -711,10 +712,19 @@ function SettingsPanel({ token }) {
   const [saving,       setSaving]       = useState('');
   const [msg,          setMsg]          = useState('');
 
+  /* Notice state */
+  const [notice, setNotice] = useState({ active: false, title: '', subtitle: '', message: '', type: 'info' });
+  const [noticeSaving, setNoticeSaving] = useState(false);
+  const [noticeMsg,    setNoticeMsg]    = useState('');
+
   useEffect(() => {
     fetch('/api/config')
       .then((r) => r.json())
-      .then((d) => { setExtraCats(d.extraCategories || []); setExtraAreas(d.extraAreas || []); })
+      .then((d) => {
+        setExtraCats(d.extraCategories || []);
+        setExtraAreas(d.extraAreas || []);
+        if (d.notice) setNotice({ active: false, title: '', subtitle: '', message: '', type: 'info', ...d.notice });
+      })
       .catch(() => {});
   }, []);
 
@@ -750,6 +760,23 @@ function SettingsPanel({ token }) {
     if (d.extraAreas) setExtraAreas(d.extraAreas);
   }
 
+  async function saveNotice() {
+    if (!notice.title.trim() || !notice.message.trim()) {
+      setNoticeMsg('⚠️ Title and message are required.');
+      setTimeout(() => setNoticeMsg(''), 3000);
+      return;
+    }
+    setNoticeSaving(true);
+    const d = await auth('/api/config/notice', { method: 'PUT', body: JSON.stringify(notice) });
+    if (d.notice) {
+      setNotice({ active: false, title: '', subtitle: '', message: '', type: 'info', ...d.notice });
+      setNoticeMsg(d.notice.active ? '✓ Notice published!' : '✓ Notice hidden.');
+    } else {
+      setNoticeMsg('✗ Save failed — check server.');
+    }
+    setNoticeSaving(false); setTimeout(() => setNoticeMsg(''), 3000);
+  }
+
   const filteredIcons = iconSearch
     ? ICON_OPTIONS.filter((i) => i.name.toLowerCase().includes(iconSearch.toLowerCase()))
     : ICON_OPTIONS;
@@ -761,6 +788,13 @@ function SettingsPanel({ token }) {
   const selectedIconEntry = ICON_OPTIONS.find((i) => i.name === catForm.iconName) || ICON_OPTIONS[0];
   const SelectedIcon = selectedIconEntry.Icon;
 
+  const NOTICE_TYPES = [
+    { value: 'info',    label: 'Info (Blue)',      color: '#2563eb' },
+    { value: 'success', label: 'Success (Green)',  color: '#006A4E' },
+    { value: 'warning', label: 'Warning (Yellow)', color: '#d97706' },
+    { value: 'urgent',  label: 'Urgent (Red)',      color: '#e11d48' },
+  ];
+
   return (
     <div className="space-y-6">
       {msg && (
@@ -768,6 +802,89 @@ function SettingsPanel({ token }) {
           <CheckCircle2 className="w-4 h-4 shrink-0" /> {msg}
         </div>
       )}
+
+      {/* ══ Site Notice ══ */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-gray-900 flex items-center gap-2">
+            <StickyNote className="w-4 h-4 text-amber-500" /> Site Notice / বিজ্ঞপ্তি
+          </h3>
+          {/* Active toggle */}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <span className="text-xs font-semibold text-gray-500">{notice.active ? 'Active' : 'Hidden'}</span>
+            <div
+              onClick={() => setNotice((n) => ({ ...n, active: !n.active }))}
+              className={`w-10 h-5 rounded-full relative transition-colors cursor-pointer ${notice.active ? 'bg-green-600' : 'bg-gray-300'}`}>
+              <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${notice.active ? 'left-5' : 'left-0.5'}`} />
+            </div>
+          </label>
+        </div>
+
+        <p className="text-xs text-gray-400">This notice will appear as a modal popup on the first page load for each visitor (once per session).</p>
+
+        {/* Type selector */}
+        <div>
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Notice Type</label>
+          <div className="flex gap-2 flex-wrap">
+            {NOTICE_TYPES.map((t) => (
+              <button key={t.value} type="button"
+                onClick={() => setNotice((n) => ({ ...n, type: t.value }))}
+                className={`text-xs font-bold px-3 py-1.5 rounded-full border-2 transition-all ${notice.type === t.value ? 'text-white border-transparent' : 'text-gray-500 border-gray-200 hover:border-gray-300'}`}
+                style={notice.type === t.value ? { background: t.color } : {}}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Title */}
+        <div>
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Title <span className="text-red-400">*</span></label>
+          <input
+            type="text"
+            placeholder="e.g. সাইট আপডেট, ঈদ অফার..."
+            value={notice.title}
+            onChange={(e) => setNotice((n) => ({ ...n, title: e.target.value }))}
+            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+          />
+        </div>
+
+        {/* Subtitle */}
+        <div>
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Subtitle <span className="text-gray-300">(optional)</span></label>
+          <input
+            type="text"
+            placeholder="e.g. আজই সুযোগ নিন, সীমিত সময়ের জন্য..."
+            value={notice.subtitle}
+            onChange={(e) => setNotice((n) => ({ ...n, subtitle: e.target.value }))}
+            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+          />
+        </div>
+
+        {/* Message / Description */}
+        <div>
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Description <span className="text-red-400">*</span></label>
+          <textarea
+            rows={4}
+            placeholder="Full notice message / বিস্তারিত বার্তা..."
+            value={notice.message}
+            onChange={(e) => setNotice((n) => ({ ...n, message: e.target.value }))}
+            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 resize-none"
+          />
+        </div>
+
+        {noticeMsg && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-sm text-emerald-700 font-semibold">
+            {noticeMsg}
+          </div>
+        )}
+
+        <button onClick={saveNotice} disabled={noticeSaving}
+          className="w-full text-white font-bold py-2.5 rounded-xl transition-all disabled:opacity-60"
+          style={{ background: 'linear-gradient(135deg, #006A4E 0%, #16a34a 100%)' }}>
+          {noticeSaving ? 'Saving…' : notice.active ? '📢 Publish Notice' : '🙈 Hide Notice'}
+        </button>
+      </div>
 
       {/* ══ Add Custom Category ══ */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">

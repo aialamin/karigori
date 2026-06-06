@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, BadgeCheck, Star, Zap } from 'lucide-react';
+import { MapPin, Clock, BadgeCheck, Star } from 'lucide-react';
 import { getCategoryInfo } from '../constants.js';
 import { CategoryIcon } from './CategoryIcon.jsx';
 import { VerificationBadge } from './VerificationBadge.jsx';
@@ -78,11 +78,6 @@ export default function WorkerCard({ worker }) {
           <StarsRow rating={worker.rating || 0} />
           <span className="text-xs font-bold text-navy-900">{(worker.rating || 0).toFixed(1)}</span>
           <span className="text-xs text-slate-400">({worker.reviewCount || 0} রিভিউ)</span>
-          {worker.available && (
-            <span className="ml-auto flex items-center gap-0.5 text-[10px] font-bold text-trust-600 bg-trust-50 px-1.5 py-0.5 rounded-full">
-              <Zap className="w-2.5 h-2.5" /> এখন পাওয়া যাচ্ছে
-            </span>
-          )}
         </div>
 
         {/* Areas */}
