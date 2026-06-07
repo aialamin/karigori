@@ -58,8 +58,9 @@ router.get('/', async (req, res) => {
         .lean(),
     ]);
 
-    // ── Fallback: if a keyword search within a category returns 0 results,
-    //    retry with category-only so users always see relevant workers ──
+    // ── Fallback: if a search (keyword or city upazila list) within a category
+    //    returns 0 results, retry with category-only so users always see
+    //    relevant workers. The client reads fallback:true to show a banner. ──
     if (workers.length === 0 && q && category) {
       const fallbackFilter = { status: 'approved', verificationLevel: { $gte: 1 } };
       fallbackFilter.$or = [{ category }, { categories: category }];

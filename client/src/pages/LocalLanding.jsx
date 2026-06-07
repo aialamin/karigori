@@ -150,7 +150,7 @@ const CITIES = {
     areas: ['Joydebpur','Tongi','Board Bazar','Konabari','Sreepur','Kaliakoir','Kapasia','Pubail','Chowrasta'],
   },
   chattogram: {
-    name: 'Chattogram', nameBn: 'চট্টগ্রাম', nameShortBn: 'চট্টগ্রাম',
+    name: 'Chattogram', legacyName: 'Chittagong', nameBn: 'চট্টগ্রাম', nameShortBn: 'চট্টগ্রাম',
     division: 'Chattogram Division', pop: '৮০ লাখ+',
     desc: 'বন্দরনগরী চট্টগ্রাম — বাংলাদেশের দ্বিতীয় বৃহত্তম শহর।',
     areas: ['Agrabad','Halishahar','Nasirabad','Pahartali','Panchlaish','Kotwali','Bayazid','Chandgaon','Khulshi','Sitakunda'],
@@ -168,7 +168,7 @@ const CITIES = {
     areas: ['Sylhet Sadar','Zindabazar','Amberkhana','Shibganj','Subhanighat','Kotwali','Moulvibazar','Beanibazar'],
   },
   cumilla: {
-    name: 'Cumilla', nameBn: 'কুমিল্লা', nameShortBn: 'কুমিল্লা',
+    name: 'Cumilla', legacyName: 'Comilla', nameBn: 'কুমিল্লা', nameShortBn: 'কুমিল্লা',
     division: 'Chattogram Division', pop: '৩৫ লাখ+',
     desc: 'ঐতিহাসিক কুমিল্লা — শিক্ষা ও শিল্পের শহর।',
     areas: ['Cumilla Sadar','Kotbari','Laksam','Chandina','Comilla Cantonment','Brahmanpara','Daudkandi'],
@@ -198,22 +198,22 @@ const CITIES = {
     areas: ['Rangpur Sadar','Taragonj','Badarganj','Mithapukur','Pirganj','Gangachara'],
   },
   bogura: {
-    name: 'Bogura', nameBn: 'বগুড়া', nameShortBn: 'বগুড়া',
+    name: 'Bogura', legacyName: 'Bogra', nameBn: 'বগুড়া', nameShortBn: 'বগুড়া',
     division: 'Rajshahi Division', pop: '১০ লাখ+',
     desc: 'উত্তরবঙ্গের বাণিজ্যিক কেন্দ্র বগুড়া।',
     areas: ['Bogura Sadar','Sherpur','Shibganj','Gabtali','Shajahanpur'],
   },
   barishal: {
-    name: 'Barishal', nameBn: 'বরিশাল', nameShortBn: 'বরিশাল',
+    name: 'Barishal', legacyName: 'Barisal', nameBn: 'বরিশাল', nameShortBn: 'বরিশাল',
     division: 'Barishal Division', pop: '১২ লাখ+',
     desc: 'নদীমাতৃক বরিশাল — দক্ষিণের প্রধান শহর।',
     areas: ['Barishal Sadar','Kotwali','Babuganj','Bakerganj','Gournadi'],
   },
   jessore: {
-    name: 'Jessore', nameBn: 'যশোর', nameShortBn: 'যশোর',
+    name: 'Jashore', legacyName: 'Jessore', nameBn: 'যশোর', nameShortBn: 'যশোর',
     division: 'Khulna Division', pop: '১০ লাখ+',
     desc: 'ফুলের শহর যশোর — পশ্চিমের গেটওয়ে।',
-    areas: ['Jessore Sadar','Monirampur','Bagherpara','Abhaynagar','Keshabpur'],
+    areas: ['Jashore Sadar','Monirampur','Bagherpara','Abhaynagar','Keshabpur'],
   },
   narsingdi: {
     name: 'Narsingdi', nameBn: 'নরসিংদী', nameShortBn: 'নরসিংদী',

@@ -1,6 +1,6 @@
 # কারিগরি — Karigori
 
-**Bangladesh's local service marketplace** — Find verified plumbers, electricians, cleaners, masons, ISP technicians, contractors, and more across Bangladesh. Fully bilingual (বাংলা + English), mobile-first PWA.
+**Bangladesh's #1 local service marketplace** — Find verified plumbers, electricians, cleaners, masons, ISP technicians, contractors, and more across Bangladesh. Fully bilingual (বাংলা + English), mobile-first PWA installable on Android & iOS.
 
 🌐 **Live:** [karigori.org](https://karigori.org) &nbsp;|&nbsp; **Repo:** [github.com/aialamin/karigori.org](https://github.com/aialamin/karigori.org)
 
@@ -9,13 +9,14 @@
 ## Features
 
 ### For Customers
-- **Browse & Search** — Filter workers by category, area, availability, verification status, rating, price
-- **11 Service Categories** — Plumber, Electrician, Cleaner, Bua, Painter, AC Mechanic, Carpenter, Gas Fitter, ISP/Internet, Mason (রাজমিস্ত্রি), Contractor
-- **City Pages** — `/dhaka`, `/gazipur`, `/narayanganj`, `/chittagong`, `/sylhet`, `/rajshahi` — auto-shows only workers in that city
-- **Worker Profiles** — Ratings, reviews, verified badge, contact button, report option
+- **Browse & Search** — Filter workers by category, area, availability, verification level, rating, price
+- **11+ Service Categories** — Built-in 11 categories + admin can add unlimited extras; all counts are dynamic (not hardcoded)
+- **Search Fallback** — If a keyword search (e.g. "Pipe repair") returns 0 results, the server automatically falls back to all workers in that category with an orange warning banner
+- **City Pages** — `/dhaka`, `/gazipur`, `/chattogram`, `/sylhet`, `/cumilla`, `/barishal`, `/jashore` and more — auto-shows workers in that city; if a category has no local workers a clear banner shows "কোনো সঠিক ফলাফল পাওয়া যায়নি" and falls back to nationwide workers in that trade
+- **Worker Profiles** — Phone-number-based URLs (`/worker/01XXXXXXXXX`), ratings, reviews, verified badge, contact button, report option
 - **Price Guide** — Estimated price ranges per service category
-- **Blog** — Service tips and guides
-- **PWA** — Installable on Android/iOS, works offline
+- **Blog** — Service tips and guides (admin-managed)
+- **PWA** — Installable on Android/iOS, works offline, app shortcuts, maskable icons
 
 ### For Service Providers (Workers)
 - **Registration** — Select up to **3 trade categories** (primary + secondary)
@@ -26,16 +27,22 @@
 - **Password Reset** — OTP-based forgot password flow
 
 ### Admin Panel (`/admin`)
-- Worker approval / rejection with notes
+- Worker approval / rejection with notes and audit trail
+- **Bulk select + approve** across Pending / Approved / Rejected tabs
+  - Pending → L1 approve, L2 approve, or reject (bulk)
+  - Approved → move to Pending or Reject (bulk)
+  - Rejected → re-approve or move to Pending (bulk)
 - Flag / unflag workers
-- Client list management
-- Bulk CSV upload of workers
-- Dynamic site config (extra categories, notice modal)
-- Live stats dashboard
+- All-users management (search, edit role, delete)
+- Blog post editor (create, edit drafts, publish/unpublish)
+- Bulk CSV/Excel upload with Bengali encoding support (UTF-8)
+- Dynamic site config — add extra categories, extra areas, site notice (modal / banner / bottom-sheet / toast)
+- Live analytics dashboard (page views, phone clicks, searches, donations)
 
 ### Platform
-- **Dynamic Stats** — Homepage stats (worker count, categories, areas, jobs) fetched live from DB with 60s cache
-- **SEO** — Structured data, city-specific meta, sitemap, canonical URLs
+- **Dynamic Stats** — Live worker count, category count (from DB), areas, jobs — 60s server cache
+- **Security Headers** — X-Frame-Options, HSTS, CSP, Referrer-Policy, Permissions-Policy
+- **SEO** — Structured data (JSON-LD), city-specific meta, sitemap, canonical URLs, Helmet tags
 - **JWT Auth** — 30-day tokens, role-based (worker / client / admin)
 - **Image optimization** — Auto-converts uploads to WebP via Sharp
 
@@ -45,10 +52,11 @@
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18.3, Vite 5, Tailwind CSS 3, PWA |
-| Backend | Node.js, Express.js |
+| Frontend | React 18.3, Vite 5, Tailwind CSS 3 |
+| PWA | VitePWA + custom Workbox SW (`injectManifest`) |
+| Backend | Node.js 20, Express.js |
 | Database | MongoDB Atlas + Mongoose |
-| Auth | JWT (jsonwebtoken) |
+| Auth | JWT (jsonwebtoken), bcrypt |
 | File Uploads | Multer + Sharp (→ WebP) |
 | Deployment | Vercel (frontend) + Render (backend) |
 
@@ -58,51 +66,64 @@
 
 ```
 karigori/
-├── client/                  React + Vite PWA frontend
+├── client/                   React + Vite PWA frontend
 │   ├── src/
-│   │   ├── pages/           All route pages
-│   │   │   ├── Home.jsx          Homepage with live stats
-│   │   │   ├── Browse.jsx        Search/filter all workers
-│   │   │   ├── CityPage.jsx      City-scoped worker pages
-│   │   │   ├── WorkerProfile.jsx Worker detail page
-│   │   │   ├── Register.jsx      Worker/client registration
+│   │   ├── sw.js             Custom Workbox service worker (injectManifest)
+│   │   ├── pages/
+│   │   │   ├── Home.jsx           Homepage with live stats + category chips
+│   │   │   ├── Browse.jsx         Search/filter all workers + fallback banner
+│   │   │   ├── CityPage.jsx       City-scoped worker pages
+│   │   │   ├── WorkerProfile.jsx  Worker detail (phone-number URL)
+│   │   │   ├── LocalLanding.jsx   /city/service SEO landing pages
+│   │   │   ├── About.jsx          About page (dynamic category count)
+│   │   │   ├── Register.jsx       Worker/client registration
 │   │   │   ├── WorkerDashboard.jsx  Worker profile editor
 │   │   │   ├── ClientDashboard.jsx  Client account
-│   │   │   ├── AdminDashboard.jsx   Admin panel
-│   │   │   ├── AllPages.jsx      Static info pages
-│   │   │   ├── PriceGuide.jsx    Service pricing page
+│   │   │   ├── AdminDashboard.jsx   Admin panel (bulk actions, analytics)
+│   │   │   ├── AllPages.jsx       Static info pages
+│   │   │   ├── PriceGuide.jsx     Service pricing page
 │   │   │   └── Blog.jsx / BlogPost.jsx
-│   │   ├── components/      Reusable components
+│   │   ├── components/
+│   │   │   ├── WorkerCard.jsx         Worker card (phone URL, stable avatar)
 │   │   │   ├── ServiceAreaPicker.jsx  Division→Zila→Upazila picker
-│   │   │   ├── CategoryIcon.jsx       Category icon mapping
-│   │   │   ├── WorkerCard.jsx         Worker listing card
-│   │   │   └── ...
+│   │   │   ├── CategoryIcon.jsx       Dynamic category icon mapping
+│   │   │   ├── AdminBlogManager.jsx   Blog CRUD (draft + publish)
+│   │   │   └── VerificationBadge.jsx
+│   │   ├── context/
+│   │   │   └── ConfigContext.jsx  allCategories (built-in + admin extras)
 │   │   ├── data/
-│   │   │   ├── bangladesh.js     All 8 divisions, 64 districts, ~490 upazilas
-│   │   │   ├── siteData.js       Service category data
-│   │   │   └── categories.js     Category → subcategory tree
-│   │   └── constants.js          CATEGORIES, BANGLADESH_LOCATIONS
+│   │   │   ├── bangladesh.js      8 divisions, 64 districts, ~490 upazilas
+│   │   │   ├── siteData.js        City & service data
+│   │   │   └── categories.js      Category → subcategory tree
+│   │   └── constants.js           CATEGORIES array
 │   └── public/
-├── server/                  Express + Mongoose API
+│       ├── site.webmanifest       PWA manifest (2025 spec)
+│       ├── icon-96.png            Android notification badge icon
+│       ├── icon-192.png           Home screen icon
+│       ├── icon-512.png           Splash screen icon
+│       └── icon-512-maskable.png  Adaptive icon (Android)
+├── server/                   Express + Mongoose API
 │   ├── models/
-│   │   ├── Worker.js        Worker schema (categories[], areas[], verification)
-│   │   ├── User.js          User schema (worker / client / admin)
-│   │   └── Review.js        Review schema
+│   │   ├── Worker.js         Worker schema (categories[], areas[], verification)
+│   │   ├── User.js           User schema (worker / client / admin)
+│   │   ├── Review.js         Review schema
+│   │   ├── Blog.js           Blog post schema
+│   │   └── Config.js         Dynamic site config (extra categories, areas, notice)
 │   ├── routes/
-│   │   ├── auth.js          Register, login, OTP, password reset
-│   │   ├── workers.js       Public worker listing + reviews
-│   │   ├── profile.js       Worker/client profile update + file uploads
-│   │   ├── admin.js         Admin moderation endpoints
-│   │   ├── stats.js         Live platform stats (60s cache)
-│   │   ├── config.js        Dynamic site config
-│   │   ├── bulkupload.js    CSV bulk worker import
-│   │   └── analytics.js     Usage analytics
-│   ├── middleware/auth.js   JWT verify + role guard
-│   ├── seed.js              Demo data seed
-│   └── seed-new-services.js ISP / Rajmistri / Contractor sample data
-├── render.yaml              Render backend deployment config
-├── vercel.json              Vercel frontend build config
-└── package.json             Root dev scripts
+│   │   ├── auth.js           Register, login, OTP, password reset
+│   │   ├── workers.js        Public worker listing + phone/ID lookup + reviews
+│   │   ├── profile.js        Worker/client profile update + file uploads
+│   │   ├── admin.js          Admin moderation + bulk approve/status endpoints
+│   │   ├── adminBlog.js      Admin blog CRUD (get draft by ID, publish)
+│   │   ├── stats.js          Live platform stats (dynamic category count)
+│   │   ├── config.js         Dynamic site config (categories, areas, notice)
+│   │   ├── bulkupload.js     CSV/Excel bulk worker import (UTF-8 Bengali)
+│   │   └── analytics.js      Usage analytics
+│   ├── middleware/auth.js    JWT verify + role guard
+│   └── index.js              Security headers, HSTS, Permissions-Policy
+├── render.yaml               Render backend deployment config
+├── vercel.json               Vercel frontend build + SPA rewrite config
+└── package.json              Root dev scripts
 ```
 
 ---
@@ -154,7 +175,7 @@ npm run dev
 ```bash
 cd server
 
-# Core demo workers (all 8 original categories)
+# Core demo workers (all 11 categories)
 npm run seed
 
 # New service workers (ISP, Rajmistri, Contractor)
@@ -176,65 +197,115 @@ Password: admin123
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | GET | `/api/health` | — | Health check |
-| GET | `/api/stats` | — | Live platform stats (60s cache) |
-| GET | `/api/workers` | — | List approved workers (filter: category, area, q, available, sort, page) |
-| GET | `/api/workers/:id` | — | Worker profile |
-| GET | `/api/workers/:id/reviews` | — | Worker reviews |
+| GET | `/api/stats` | — | Live platform stats (dynamic category count, 60s cache) |
+| GET | `/api/workers` | — | List workers (filter: category, area, q, available, sort, page) + search fallback |
+| GET | `/api/workers/:identifier` | — | Worker profile — accepts phone number OR MongoDB ObjectId |
+| GET | `/api/workers/:id/reviews` | — | Worker reviews (paginated) |
 | POST | `/api/workers/:id/reviews` | — | Submit review |
-| POST | `/api/workers/:id/report` | — | Report worker |
+| POST | `/api/workers/:id/report` | — | Report a worker |
 | POST | `/api/auth/register` | — | Register (worker or client) |
 | POST | `/api/auth/login` | — | Login |
 | GET | `/api/auth/me` | JWT | Current user |
 | POST | `/api/auth/send-otp` | JWT | Send phone OTP |
-| POST | `/api/auth/verify-otp` | JWT | Verify phone OTP |
+| POST | `/api/auth/verify-otp` | JWT | Verify phone OTP (grants Level 1) |
 | POST | `/api/auth/forgot-password` | — | Send reset OTP |
 | POST | `/api/auth/reset-password` | — | Reset password |
-| GET | `/api/profile/worker` | JWT worker | Get own profile |
-| PUT | `/api/profile/worker` | JWT worker | Update profile (bio, areas, categories, rate) |
+| GET | `/api/profile/worker` | JWT worker | Get own worker profile |
+| PUT | `/api/profile/worker` | JWT worker | Update profile |
 | POST | `/api/profile/worker/photo` | JWT worker | Upload profile photo |
-| POST | `/api/profile/worker/selfie` | JWT worker | Upload NID selfie |
 | POST | `/api/profile/worker/documents` | JWT worker | Upload NID + certificates |
-| PUT | `/api/profile/client` | JWT client | Update client profile |
 | GET | `/api/admin/stats` | JWT admin | Admin dashboard stats |
 | GET | `/api/admin/workers` | JWT admin | Worker moderation list |
-| PUT | `/api/admin/workers/:id` | JWT admin | Approve/reject/flag worker |
-| GET | `/api/admin/clients` | JWT admin | Client list |
+| PUT | `/api/admin/workers/bulk-approve` | JWT admin | Bulk approve workers to L1/L2 |
+| PUT | `/api/admin/workers/bulk-status` | JWT admin | Bulk set status (pending/rejected) |
+| PUT | `/api/admin/workers/:id/approve` | JWT admin | Approve single worker |
+| PUT | `/api/admin/workers/:id/reject` | JWT admin | Reject single worker |
+| PUT | `/api/admin/workers/:id/flag` | JWT admin | Flag/unflag worker |
+| GET | `/api/admin/users` | JWT admin | All users (searchable) |
+| PUT | `/api/admin/users/:id` | JWT admin | Edit user (name, email, role) |
+| DELETE | `/api/admin/users/:id` | JWT admin | Delete user |
+| GET | `/api/admin/blogs/:id` | JWT admin | Get blog by ID (including drafts) |
 | GET | `/api/config` | — | Dynamic site config |
-| PUT | `/api/config` | JWT admin | Update site config |
-| POST | `/api/bulkupload` | JWT admin | Bulk CSV worker import |
+| POST | `/api/config/categories` | JWT admin | Add extra category |
+| DELETE | `/api/config/categories/:key` | JWT admin | Delete extra category |
+| POST | `/api/config/areas` | JWT admin | Add extra area |
+| PUT | `/api/config/notice` | JWT admin | Update site notice |
+| POST | `/api/bulk/workers` | JWT admin | Bulk CSV/Excel import |
+| GET | `/api/bulk/template` | JWT admin | Download import template |
 
 ---
 
-## Service Categories (11)
+## Service Categories (11 built-in + admin extras)
 
-| Key | English | বাংলা | Icon |
-|---|---|---|---|
-| `plumber` | Plumber | প্লাম্বার | 🔧 |
-| `electrician` | Electrician | ইলেক্ট্রিশিয়ান | ⚡ |
-| `cleaner` | Cleaner | ক্লিনার | ✨ |
-| `bua` | Bua / House Help | বুয়া | 🏠 |
-| `painter` | Painter | পেইন্টার | 🖌️ |
-| `ac_repair` | AC Mechanic | এসি মেকানিক | 🌬️ |
-| `carpenter` | Carpenter | কাঠমিস্ত্রি | 🔨 |
-| `gas_fitter` | Gas Fitter | গ্যাস ফিটার | 🔥 |
-| `isp` | ISP / Internet | ইন্টারনেট সেবা | 📶 |
-| `rajmistri` | Mason | রাজমিস্ত্রি | 👷 |
-| `contractor` | Contractor | কন্ট্রাক্টর | 🏢 |
+| Key | English | বাংলা |
+|---|---|---|
+| `plumber` | Plumber | প্লাম্বার |
+| `electrician` | Electrician | ইলেক্ট্রিশিয়ান |
+| `cleaner` | Cleaner | ক্লিনার |
+| `bua` | Bua / House Help | বুয়া |
+| `painter` | Painter | পেইন্টার |
+| `ac_repair` | AC Mechanic | এসি মেকানিক |
+| `carpenter` | Carpenter | কাঠমিস্ত্রি |
+| `gas_fitter` | Gas Fitter | গ্যাস ফিটার |
+| `isp` | ISP / Internet | ইন্টারনেট সেবা |
+| `rajmistri` | Mason | রাজমিস্ত্রি |
+| `contractor` | Contractor | কন্ট্রাক্টর |
+
+Admin can add unlimited extra categories from the Settings tab. All category counts across every page update automatically.
+
+---
+
+## Worker Verification Levels
+
+| Level | Label | Requirement |
+|---|---|---|
+| 0 | Unverified | Registered, awaiting review |
+| 1 | Phone Verified | Phone OTP confirmed + admin approved |
+| 2 | ID Verified | NID selfie uploaded + admin approved |
+| 3 | Skilled Verified | Certificates + trade approved |
+| 4 | Trusted Pro | 20+ jobs, 4.5+ rating |
+
+---
+
+## PWA / Android App
+
+The app is a fully installable Progressive Web App meeting the 2025 Android Chrome install criteria:
+
+| Feature | Value |
+|---|---|
+| Manifest | `site.webmanifest` (injected by VitePWA at build) |
+| Icons | 96×96, 192×192, 512×512 (any + maskable) |
+| `launch_handler` | `navigate-existing` — no duplicate tabs on re-open |
+| `handle_links` | `preferred` — Android opens karigori.org links in the app |
+| Shortcuts | Plumber, Electrician, AC Repair, Register (long-press icon) |
+| Service Worker | Custom Workbox SW (`injectManifest`) |
+| Offline | Core UI + last-visited pages cached |
+| Quota safe | Precache limited to CSS/HTML/PNG (<1 MB total); JS chunks are **not** precached |
+| Cache cleanup | On every SW activate, stale/old caches are deleted automatically |
 
 ---
 
 ## City Pages
 
-Each city page auto-fetches workers whose service areas include that city's upazilas. All category filters and search on city pages carry the city tag through to Browse.
+Workers are fetched by matching all upazilas under the city's district. Both the **new official spelling** and the **legacy spelling** are searched simultaneously so workers who registered before an official rename are still found.
 
-| Route | City |
-|---|---|
-| `/dhaka` | ঢাকা |
-| `/gazipur` | গাজীপুর |
-| `/narayanganj` | নারায়ণগঞ্জ |
-| `/chittagong` | চট্টগ্রাম |
-| `/sylhet` | সিলেট |
-| `/rajshahi` | রাজশাহী |
+| Route | City | Official Name | Legacy Name |
+|---|---|---|---|
+| `/dhaka` | ঢাকা | Dhaka | — |
+| `/gazipur` | গাজীপুর | Gazipur | — |
+| `/narayanganj` | নারায়ণগঞ্জ | Narayanganj | — |
+| `/chattogram` | চট্টগ্রাম | Chattogram | Chittagong |
+| `/sylhet` | সিলেট | Sylhet | — |
+| `/rajshahi` | রাজশাহী | Rajshahi | — |
+| `/cumilla` | কুমিল্লা | Cumilla | Comilla |
+| `/barishal` | বরিশাল | Barishal | Barisal |
+| `/jessore` | যশোর | Jashore | Jessore |
+| `/bogura` | বগুড়া | Bogura | Bogra |
+| `/khulna` | খুলনা | Khulna | — |
+| `/feni` | ফেনী | Feni | — |
+| `/coxsbazar` | কক্সবাজার | Cox's Bazar | — |
+
+If a selected category has **no workers in that city**, a dismissible orange banner appears — "X — কোনো সঠিক ফলাফল পাওয়া যায়নি / সব [category] কারিগর দেখানো হচ্ছে" — and nationwide workers in that trade are shown instead.
 
 ---
 
@@ -242,23 +313,16 @@ Each city page auto-fetches workers whose service areas include that city's upaz
 
 ### Backend → Render
 
-Set environment variables in Render dashboard:
-
 ```env
 NODE_ENV=production
 MONGO_URI=your-atlas-connection-string
 JWT_SECRET=your-long-random-secret
-CLIENT_URL=https://your-app.vercel.app
+CLIENT_URL=https://karigori.org
 ```
 
-Build command: `npm install`
-Start command: `npm start`
-
-Health check: `https://your-service.onrender.com/api/health`
+Build: `npm install` · Start: `npm start`
 
 ### Frontend → Vercel
-
-Set environment variable in Vercel dashboard:
 
 ```env
 VITE_API_URL=https://your-service.onrender.com
@@ -272,18 +336,9 @@ After deploying frontend, update Render's `CLIENT_URL` to your Vercel URL and re
 
 - Never commit `server/.env`, `client/.env`, or any credentials
 - `server/uploads/` is git-ignored — never commit user documents
-- Rotate any DB password that has been shared or exposed
-- `JWT_SECRET` and `MONGO_URI` must only live in Render environment variables in production
-
----
-
-## Worker Verification Levels
-
-| Level | Badge | Requirement |
-|---|---|---|
-| 0 | Pending | Registered, awaiting admin review |
-| 1 | ✓ Verified | Phone OTP verified + admin approved |
-| 2 | ✓✓ ID Verified | Selfie with NID uploaded + admin approved |
+- Security headers set on every response: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security` (production only)
+- OTP codes are **never** logged in production (`NODE_ENV=production` gating)
+- `console.*` and `debugger` statements are stripped from the production JS bundle by esbuild
 
 ---
 

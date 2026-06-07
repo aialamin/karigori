@@ -56,14 +56,14 @@ export const BD = [
     ],
   },
   {
-    division: 'Chittagong', divisionBn: 'চট্টগ্রাম',
+    division: 'Chattogram', divisionBn: 'চট্টগ্রাম',
     districts: [
-      { district: 'Chittagong', districtBn: 'চট্টগ্রাম', upazilas: [
+      { district: 'Chattogram', districtBn: 'চট্টগ্রাম', upazilas: [
         'Anwara','Banshkhali','Boalkhali','Chandanaish','Fatikchhari','Hathazari','Karnaphuli','Lohagara','Mirsharai','Patiya','Rangunia','Raozan','Sandwip','Satkania','Sitakunda',
         'Agrabad','Halishahar','Nasirabad','Pahartali','Panchlaish','Bayazid','Chandgaon','Bakalia','Double Mooring',
       ]},
-      { district: 'Comilla', districtBn: 'কুমিল্লা', upazilas: [
-        'Comilla Sadar','Barura','Brahmanpara','Burichang','Chandina','Chauddagram','Daudkandi','Debidwar','Homna','Laksam','Lalmai','Meghna','Muradnagar','Nangalkot','Titas',
+      { district: 'Cumilla', districtBn: 'কুমিল্লা', upazilas: [
+        'Cumilla Sadar','Barura','Brahmanpara','Burichang','Chandina','Chauddagram','Daudkandi','Debidwar','Homna','Laksam','Lalmai','Meghna','Muradnagar','Nangalkot','Titas',
       ]},
       { district: "Cox's Bazar", districtBn: "কক্সবাজার", upazilas: [
         "Cox's Bazar Sadar",'Chakaria','Kutubdia','Maheshkhali','Pekua','Ramu','Teknaf','Ukhia',
@@ -131,7 +131,7 @@ export const BD = [
         'Khulna City','Khulna Sadar','Batiaghata','Dacope','Dumuria','Dighalia','Koyra','Paikgachha','Phultala','Rupsa','Terokhada',
         'Sonadanga','Khalishpur','Khan Jahan Ali',
       ]},
-      { district: 'Jessore', districtBn: 'যশোর', upazilas: [
+      { district: 'Jashore', districtBn: 'যশোর', upazilas: [
         'Jashore Sadar','Abhaynagar','Bagherpara','Chaugachha','Jhikargachha','Keshabpur','Manirampur','Sharsha',
       ]},
       { district: 'Satkhira', districtBn: 'সাতক্ষীরা', upazilas: [
@@ -161,7 +161,7 @@ export const BD = [
     ],
   },
   {
-    division: 'Barisal', divisionBn: 'বরিশাল',
+    division: 'Barishal', divisionBn: 'বরিশাল',
     districts: [
       { district: 'Barishal', districtBn: 'বরিশাল', upazilas: [
         'Barishal City','Barishal Sadar','Agailjhara','Babuganj','Bakerganj','Banaripara','Gaurnadi','Hizla','Mehendiganj','Muladi','Wazirpur',
@@ -263,13 +263,28 @@ export const ALL_LOCATIONS  = [...new Set([...ALL_DIVISIONS, ...ALL_DISTRICTS, .
  * - Upazila → [itself]
  * - Unknown → [term] (pass through)
  */
+// Legacy (old) spellings → current official spellings used in bangladesh.js data.
+// This lets expandLocation('Chittagong') still work for backward compatibility
+// (existing workers who registered before the official rename are still found).
+const SPELLING_ALIASES = {
+  chittagong: 'chattogram',   // old → new official
+  comilla:    'cumilla',      // old → new official
+  jessore:    'jashore',      // old → new official
+  barisal:    'barishal',     // old → new official
+  bogra:      'bogura',       // old → new official
+};
+
 export function expandLocation(term) {
   if (!term?.trim()) return [];
-  const q = term.trim().toLowerCase();
+  const raw = term.trim();
+  // Normalise: if the caller uses the new official spelling, map to the
+  // spelling actually stored in the BD district/division data above.
+  const aliased = SPELLING_ALIASES[raw.toLowerCase()];
+  const q = (aliased || raw).toLowerCase();
 
   // Division match
   const div = BD.find((d) =>
-    d.division.toLowerCase() === q || d.divisionBn.includes(term)
+    d.division.toLowerCase() === q || d.divisionBn.includes(raw)
   );
   if (div) {
     return [
@@ -283,7 +298,7 @@ export function expandLocation(term) {
   for (const div of BD) {
     const dist = div.districts.find((d) =>
       d.district.toLowerCase() === q ||
-      d.districtBn.includes(term) ||
+      d.districtBn.includes(raw) ||
       d.district.toLowerCase().includes(q)
     );
     if (dist) return [dist.district, ...dist.upazilas];
@@ -293,7 +308,7 @@ export function expandLocation(term) {
   const upazilaMatches = ALL_UPAZILAS.filter((u) => u.toLowerCase().includes(q));
   if (upazilaMatches.length > 0) return upazilaMatches;
 
-  return [term];
+  return [raw];
 }
 
 /**

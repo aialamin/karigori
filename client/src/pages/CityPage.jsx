@@ -142,22 +142,31 @@ export default function CityPage() {
   const dropdownRef = useRef(null);
 
   /* ── City workers ── */
-  const [workers,      setWorkers]    = useState([]);
-  const [wLoading,     setWLoading]   = useState(true);
-  const [activeCat,    setActiveCat]  = useState('');   // '' = all
-  const [workerSearch, setWSearch]    = useState('');   // local keyword filter
+  const [workers,        setWorkers]      = useState([]);
+  const [wLoading,       setWLoading]     = useState(true);
+  const [activeCat,      setActiveCat]    = useState('');   // '' = all
+  const [workerSearch,   setWSearch]      = useState('');   // local keyword filter
+  const [serverFallback, setServerFallback] = useState(false); // true when API found 0 in city, showing nationwide
 
   useEffect(() => {
     setWLoading(true);
+    setServerFallback(false);
     const p = new URLSearchParams();
-    const upazilas = expandLocation(city.name);          // all upazilas in this city/district
-    p.set('q', upazilas.slice(0, 30).join('|'));          // pipe-separated OR match
+    // Expand by new spelling; also expand by legacy spelling so workers who
+    // registered before the official rename (e.g. 'Chittagong') are still found.
+    const newUpazilas    = expandLocation(city.name);
+    const legacyUpazilas = city.legacyName ? expandLocation(city.legacyName) : [];
+    const upazilas       = [...new Set([...newUpazilas, ...legacyUpazilas])];
+    p.set('q', upazilas.slice(0, 40).join('|'));          // pipe-separated OR match (bumped to 40)
     if (activeCat) p.set('category', activeCat);
     p.set('limit', '60');
     fetch(`/api/workers?${p}`)
-      .then((r) => r.ok ? r.json() : { workers: [] })
-      .then((d) => setWorkers(Array.isArray(d.workers) ? d.workers : []))
-      .catch(() => setWorkers([]))
+      .then((r) => r.ok ? r.json() : { workers: [], fallback: false })
+      .then((d) => {
+        setWorkers(Array.isArray(d.workers) ? d.workers : []);
+        setServerFallback(d.fallback === true);
+      })
+      .catch(() => { setWorkers([]); setServerFallback(false); })
       .finally(() => setWLoading(false));
   }, [citySlug, activeCat]);
 
@@ -454,7 +463,11 @@ export default function CityPage() {
                 {city.namePoss} সকল কারিগর
               </h2>
               <p className="section-sub mt-1">
-                {wLoading ? 'লোড হচ্ছে…' : `${toBn(filteredWorkers.length)}জন যাচাইকৃত কারিগর পাওয়া গেছে`}
+                {wLoading
+                  ? 'লোড হচ্ছে…'
+                  : serverFallback
+                    ? `সারাদেশের ${toBn(filteredWorkers.length)}জন কারিগর দেখানো হচ্ছে`
+                    : `${toBn(filteredWorkers.length)}জন যাচাইকৃত কারিগর পাওয়া গেছে`}
               </p>
             </div>
             {/* Keyword search inside city */}
@@ -499,7 +512,26 @@ export default function CityPage() {
             ))}
           </div>
 
-          {/* Fallback banner */}
+          {/* Server fallback banner — city has no workers for this category */}
+          {!wLoading && serverFallback && activeCat && (
+            <div className="mb-4 flex items-start gap-3 bg-orange-50 border-l-4 border-orange-400 rounded-r-xl px-4 py-3 shadow-sm">
+              <span className="text-xl shrink-0 mt-0.5">🔍</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-orange-800">
+                  {city.nameBn} — কোনো সঠিক ফলাফল পাওয়া যায়নি
+                </p>
+                <p className="text-xs text-orange-700 mt-1 leading-relaxed">
+                  সব <strong>{CATEGORIES.find(c => c.key === activeCat)?.labelBn || activeCat}</strong> কারিগর দেখানো হচ্ছে — এরা সবাই এই কাজ করতে পারবেন।
+                  <button onClick={() => { setActiveCat(''); setWSearch(''); }}
+                    className="ml-2 inline-flex items-center gap-1 bg-orange-100 hover:bg-orange-200 text-orange-800 font-semibold px-2 py-0.5 rounded-full text-[11px] transition-colors">
+                    ✕ সার্চ মুছুন
+                  </button>
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Keyword fallback banner — local search within city workers had no match */}
           {!wLoading && cityFallback && (
             <div className="mb-4 flex items-start gap-3 bg-orange-50 border-l-4 border-orange-400 rounded-r-xl px-4 py-3 shadow-sm">
               <span className="text-xl shrink-0 mt-0.5">⚠️</span>
@@ -536,7 +568,7 @@ export default function CityPage() {
                 </div>
               ))}
             </div>
-          ) : filteredWorkers.length > 0 || cityFallback ? (
+          ) : filteredWorkers.length > 0 || cityFallback || serverFallback ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredWorkers.slice(0, 12).map((w) => (

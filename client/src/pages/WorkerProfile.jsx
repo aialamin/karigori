@@ -466,7 +466,7 @@ export default function WorkerProfile() {
         title={`${worker.name} — ${cat.label} | ${worker.areas?.[0] || 'Bangladesh'}`}
         description={`${worker.name} — বিশ্বস্ত ${cat.label} in ${worker.areas?.slice(0, 3).join(', ')}। ${worker.experience} বছরের অভিজ্ঞতা। রেটিং: ${worker.rating}/5 (${worker.reviewCount} রিভিউ)।`}
         keywords={`${worker.name}, ${cat.label} ${worker.areas?.[0] || 'dhaka'}, ${cat.en || cat.label} ${worker.areas?.join(' ')} bangladesh`}
-        canonical={`/worker/${id}`}
+        canonical={`/worker/${worker.phone || identifier}`}
         schema={workerSchema}
       />
 

@@ -21,104 +21,19 @@ export default defineConfig(({ mode }) => ({
     compression({ algorithm: 'gzip',           exclude: [/\.(png|jpg|webp|ico|woff2)$/] }),
 
     VitePWA({
+      // injectManifest lets us use a custom sw.js with a full activate handler
+      // that deletes old bloated caches on existing Android installs
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      // Single manifest file — avoids dual <link rel="manifest"> in index.html
       manifestFilename: 'site.webmanifest',
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
-        // Skip waiting so new SW activates instantly on update
-        skipWaiting: true,
-        clientsClaim: true,
-        // Purge old precache on SW update — prevents stale chunk 404s after redeploy
-        cleanupOutdatedCaches: true,
-        // Navigation preload — speeds up first-load on returning users
-        navigationPreload: true,
-        // Inline small assets into the SW precache list
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MB
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-stylesheets',
-              expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-webfonts',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /\/api\/workers(\?.*)?$/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'api-workers',
-              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 6 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /\/api\/config.*/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'api-config',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /\/api\/workers\/[a-z0-9]+$/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'api-worker-profiles',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 2 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /\/uploads\/.*/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'worker-images',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /\/api\/blogs(\?.*)?$/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'api-blogs',
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 12 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /\/api\/stats$/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'api-stats',
-              expiration: { maxEntries: 5, maxAgeSeconds: 60 * 2 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/api\.dicebear\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'avatars',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
+      injectManifest: {
+        // Only precache small essential assets — skip JS chunks (they blow quota)
+        globPatterns: ['**/*.{css,html,ico,png,webmanifest}'],
+        // Never precache anything > 1 MB
+        maximumFileSizeToCacheInBytes: 1 * 1024 * 1024,
       },
       manifest: {
         // ── Identity ──
