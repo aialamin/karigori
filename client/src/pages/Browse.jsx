@@ -48,40 +48,26 @@ export default function Browse() {
   const fetchWorkers = useCallback(async () => {
     setLoading(true); setError(null); setFallbackActive(false);
     try {
-      // ── Build primary query ──
-      const buildParams = (withQ) => {
-        const p = new URLSearchParams();
-        if (selectedCat)   p.set('category', selectedCat);
-        if (onlyAvailable) p.set('available', 'true');
-        if (sort)          p.set('sort', sort);
-        p.set('limit', '60');
-        if (withQ) {
-          const effectiveQ = searchQ || selectedArea;
-          if (effectiveQ) {
-            const expanded = expandLocation(effectiveQ);
-            p.set('q', expanded.length > 1 ? expanded.slice(0, 20).join('|') : effectiveQ);
-          }
-        }
-        return p;
-      };
+      const p = new URLSearchParams();
+      if (selectedCat)   p.set('category', selectedCat);
+      if (onlyAvailable) p.set('available', 'true');
+      if (sort)          p.set('sort', sort);
+      p.set('limit', '60');
+      const effectiveQ = searchQ || selectedArea;
+      if (effectiveQ) {
+        const expanded = expandLocation(effectiveQ);
+        p.set('q', expanded.length > 1 ? expanded.slice(0, 20).join('|') : effectiveQ);
+      }
 
-      const res = await fetch(`/api/workers?${buildParams(true)}`);
+      const res = await fetch(`/api/workers?${p}`);
       if (!res.ok) throw new Error('Failed to load workers');
       const data = await res.json();
-      const primary = Array.isArray(data.workers) ? data.workers : [];
+
+      // Server handles the fallback — just read the flag
+      setAllWorkers(Array.isArray(data.workers) ? data.workers : []);
+      setFallbackActive(!!data.fallback);
 
       if (searchQ) trackSearch();
-
-      // ── Fallback: service/text search returned 0 results within a category ──
-      // Show all workers in that category so users always see relevant people
-      if (primary.length === 0 && searchQ && selectedCat) {
-        setFallbackActive(true);
-        const res2 = await fetch(`/api/workers?${buildParams(false)}`);
-        const data2 = res2.ok ? await res2.json() : { workers: [] };
-        setAllWorkers(Array.isArray(data2.workers) ? data2.workers : []);
-      } else {
-        setAllWorkers(primary);
-      }
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }, [selectedCat, selectedArea, onlyAvailable, sort, searchQ]);

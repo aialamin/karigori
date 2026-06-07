@@ -45,6 +45,8 @@ router.get('/', async (req, res) => {
     };
 
     const skip  = (parseInt(page) - 1) * parseInt(limit);
+    const selectFields = 'name photo category categories areas rating reviewCount experience hourlyRate verified available verificationLevel status subcategories userId';
+
     // Run count + find in parallel; use lean() for plain JS objects (no Mongoose overhead)
     const [total, workers] = await Promise.all([
       Worker.countDocuments(filter),
@@ -52,11 +54,38 @@ router.get('/', async (req, res) => {
         .sort(sortMap[sort] || sortMap.default)
         .skip(skip)
         .limit(parseInt(limit))
-        .select('name photo category categories areas rating reviewCount experience hourlyRate verified available verificationLevel status subcategories userId')
+        .select(selectFields)
         .lean(),
     ]);
 
-    res.json({ workers, total, page: parseInt(page), totalPages: Math.ceil(total / parseInt(limit)) });
+    // ── Fallback: if a keyword search within a category returns 0 results,
+    //    retry with category-only so users always see relevant workers ──
+    if (workers.length === 0 && q && category) {
+      const fallbackFilter = { status: 'approved', verificationLevel: { $gte: 1 } };
+      fallbackFilter.$or = [{ category }, { categories: category }];
+      if (available !== undefined) fallbackFilter.available = available === 'true';
+
+      const [fbTotal, fbWorkers] = await Promise.all([
+        Worker.countDocuments(fallbackFilter),
+        Worker.find(fallbackFilter)
+          .sort(sortMap[sort] || sortMap.default)
+          .skip(skip)
+          .limit(parseInt(limit))
+          .select(selectFields)
+          .lean(),
+      ]);
+
+      return res.json({
+        workers: fbWorkers,
+        total: fbTotal,
+        page: parseInt(page),
+        totalPages: Math.ceil(fbTotal / parseInt(limit)),
+        fallback: true,        // client uses this to show the "no exact match" banner
+        fallbackQuery: q,      // original search term for the banner message
+      });
+    }
+
+    res.json({ workers, total, page: parseInt(page), totalPages: Math.ceil(total / parseInt(limit)), fallback: false });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

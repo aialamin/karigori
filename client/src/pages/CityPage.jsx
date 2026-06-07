@@ -160,7 +160,7 @@ export default function CityPage() {
   }, [citySlug, activeCat]);
 
   /* keyword filter is client-side (fast, no extra API call) */
-  const filteredWorkers = workerSearch.trim()
+  const exactMatches = workerSearch.trim()
     ? workers.filter((w) =>
         w.name?.toLowerCase().includes(workerSearch.toLowerCase()) ||
         w.category?.toLowerCase().includes(workerSearch.toLowerCase()) ||
@@ -168,6 +168,11 @@ export default function CityPage() {
         w.areas?.some((a) => a.toLowerCase().includes(workerSearch.toLowerCase()))
       )
     : workers;
+
+  // Fallback: no exact match for a service keyword → show all city workers so user
+  // always sees relevant people (all plumbers can fix pipes, all electricians can fix wiring, etc.)
+  const cityFallback = workerSearch.trim() && exactMatches.length === 0;
+  const filteredWorkers = cityFallback ? workers : exactMatches;
 
   useEffect(() => {
     const click = (e) => { if (!dropdownRef.current?.contains(e.target) && !inputRef.current?.contains(e.target)) setFocused(false); };
@@ -492,6 +497,27 @@ export default function CityPage() {
             ))}
           </div>
 
+          {/* Fallback banner */}
+          {!wLoading && cityFallback && (
+            <div className="mb-4 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+              <span className="text-lg shrink-0">💡</span>
+              <div>
+                <p className="text-sm font-semibold text-amber-800">
+                  &quot;{workerSearch}&quot; এর জন্য বিশেষজ্ঞ পাওয়া যায়নি
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  {activeCat
+                    ? `সব ${CATEGORIES.find(c=>c.key===activeCat)?.labelBn||activeCat} দেখানো হচ্ছে`
+                    : `${city.namePoss} সব কারিগর দেখানো হচ্ছে`} — এরা সবাই এই কাজ করতে পারেন।
+                  <button onClick={() => setWSearch('')}
+                    className="ml-2 underline font-semibold hover:text-amber-900">
+                    সার্চ মুছুন
+                  </button>
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Workers grid */}
           {wLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -508,7 +534,7 @@ export default function CityPage() {
                 </div>
               ))}
             </div>
-          ) : filteredWorkers.length > 0 ? (
+          ) : filteredWorkers.length > 0 || cityFallback ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredWorkers.slice(0, 12).map((w) => (
@@ -532,16 +558,14 @@ export default function CityPage() {
               <div className="text-4xl mb-3">🔍</div>
               <p className="font-bold text-gray-800 mb-1">কোনো কারিগর পাওয়া যায়নি</p>
               <p className="text-sm text-slate-500 mb-5">
-                {workerSearch
-                  ? `"${workerSearch}" — এই নামে ${city.namePoss} কোনো কারিগর নেই`
+                {activeCat
+                  ? `${city.nameLoc} ${CATEGORIES.find(c=>c.key===activeCat)?.labelBn||''} এখনো যোগ হয়নি`
                   : `${city.nameLoc} এখনো কারিগর যোগ হয়নি`}
               </p>
-              {workerSearch && (
-                <button onClick={() => setWSearch('')}
-                  className="text-sm font-semibold text-green-700 hover:underline">
-                  ← সব কারিগর দেখুন
-                </button>
-              )}
+              <button onClick={() => { setActiveCat(''); setWSearch(''); }}
+                className="text-sm font-semibold text-green-700 hover:underline">
+                ← সব কারিগর দেখুন
+              </button>
             </div>
           )}
         </div>
