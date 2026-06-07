@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { SlidersHorizontal, X, Search, ChevronDown, CheckCircle2, LocateFixed, Loader2, MapPin, Navigation } from 'lucide-react';
 import { getCategoryInfo, BANGLADESH_LOCATIONS } from '../constants.js';
@@ -43,16 +43,8 @@ export default function Browse() {
   const searchRef = useRef(null);
 
   useEffect(() => { if (catParam) setSelectedCat(catParam); }, [catParam]);
-  useEffect(() => { fetchWorkers(); }, [selectedCat, selectedArea, onlyAvailable, sort, searchQ]);
 
-  // Auto-apply detected location → area filter
-  useEffect(() => {
-    if (userLoc.area && !selectedArea) {
-      setSelectedArea(userLoc.area);
-    }
-  }, [userLoc.area]);
-
-  async function fetchWorkers() {
+  const fetchWorkers = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const p = new URLSearchParams();
@@ -60,28 +52,28 @@ export default function Browse() {
       if (onlyAvailable) p.set('available', 'true');
       if (sort)          p.set('sort', sort);
       p.set('limit', '60');
-
-      // Smart hierarchy expansion: "Rajshahi" → all Rajshahi upazilas
       const effectiveQ = searchQ || selectedArea;
       if (effectiveQ) {
         const expanded = expandLocation(effectiveQ);
-        if (expanded.length > 1) {
-          // Multiple areas: send as comma-separated q search
-          p.set('q', expanded.slice(0, 20).join('|')); // regex OR
-        } else {
-          p.set('q', effectiveQ);
-        }
+        p.set('q', expanded.length > 1 ? expanded.slice(0, 20).join('|') : effectiveQ);
       }
-
       const res = await fetch(`/api/workers?${p}`);
       if (!res.ok) throw new Error('Failed to load workers');
       const data = await res.json();
-      setAllWorkers(data.workers);
-
+      setAllWorkers(Array.isArray(data.workers) ? data.workers : []);
       if (searchQ) trackSearch();
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  }
+  }, [selectedCat, selectedArea, onlyAvailable, sort, searchQ]);
+
+  useEffect(() => { fetchWorkers(); }, [fetchWorkers]);
+
+  // Auto-apply detected location → area filter
+  useEffect(() => {
+    if (userLoc.area && !selectedArea) {
+      setSelectedArea(userLoc.area);
+    }
+  }, [userLoc.area]);
 
   function clearFilters() {
     setSelectedCat(''); setSelectedArea('');
@@ -94,7 +86,10 @@ export default function Browse() {
     setSearchQ(localQ);
   }
 
-  const workers = onlyVerified ? allWorkers.filter((w) => w.verified) : allWorkers;
+  const workers = useMemo(
+    () => onlyVerified ? allWorkers.filter((w) => w.verified) : allWorkers,
+    [allWorkers, onlyVerified]
+  );
   const activeFilters = [selectedCat, selectedArea, onlyAvailable, onlyVerified, searchQ].filter(Boolean).length;
   const catInfo = selectedCat ? getCategoryInfo(selectedCat) : null;
   const sortLabel = SORT_OPTIONS.find((o) => o.value === sort)?.label;

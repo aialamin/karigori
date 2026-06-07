@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import compression from 'compression';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -55,9 +56,19 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+
+// ── Gzip all responses (20-70% size reduction on JSON/HTML) ──
+app.use(compression({ level: 6, threshold: 1024 }));
+
 app.use(express.json({ limit: '10mb' }));
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// ── Static uploads with long-term browser cache ──
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '30d',
+  immutable: false,
+  etag: true,
+  lastModified: true,
+}));
 
 app.use('/api/workers',  workerRoutes);
 app.use('/api/auth',     authRoutes);
@@ -68,6 +79,16 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/bulk',      bulkRoutes);
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 
+// ── API cache hints (CDN / browser) ──
+app.use('/api/workers', (req, res, next) => {
+  if (req.method === 'GET') res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=60');
+  next();
+});
+app.use('/api/config', (req, res, next) => {
+  if (req.method === 'GET') res.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=300');
+  next();
+});
+
 mongoose
   .connect(process.env.MONGO_URI || 'mongodb://localhost:27017/karigori')
   .then(() => {
@@ -75,6 +96,8 @@ mongoose
     const server = app.listen(PORT, () =>
       console.log(`🚀 Server running on http://localhost:${PORT}`)
     );
+    server.keepAliveTimeout = 65000;  // keep TCP alive longer than ALB's 60s
+    server.headersTimeout   = 66000;
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
         console.error(`\n❌  Port ${PORT} is already in use.`);

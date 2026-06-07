@@ -152,4 +152,79 @@ router.post('/verify-otp', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+/* ── Forgot password: send OTP ───────────────────────────────────── */
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email?.trim()) return res.status(400).json({ message: 'ইমেইল দিন' });
+
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    // Always return success (don't reveal if email exists)
+    if (!user) return res.json({ message: 'OTP পাঠানো হয়েছে (যদি অ্যাকাউন্ট থাকে)' });
+
+    const otp = genOtp();
+    const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+    user.resetOtp = otp;
+    user.resetOtpExpiry = expiry;
+    await user.save();
+
+    // Production: send email here via nodemailer / SendGrid
+    console.log(`[DEV] Password reset OTP for ${email}: ${otp}`);
+
+    res.json({
+      message: 'OTP পাঠানো হয়েছে',
+      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined,
+    });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+/* ── Forgot password: verify OTP ─────────────────────────────────── */
+router.post('/verify-reset-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) return res.status(400).json({ message: 'ইমেইল ও OTP দিন' });
+
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user || !user.resetOtp)
+      return res.status(400).json({ message: 'OTP পাওয়া যায়নি। আবার OTP পাঠান।' });
+    if (user.resetOtp !== String(otp))
+      return res.status(400).json({ message: 'OTP সঠিক নয়' });
+    if (new Date() > user.resetOtpExpiry)
+      return res.status(400).json({ message: 'OTP মেয়াদ শেষ। আবার OTP নিন।' });
+
+    // Mark OTP as verified (extend expiry by 10 min for reset step; don't clear yet)
+    user.resetOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    res.json({ message: 'OTP সঠিক' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+/* ── Forgot password: reset ──────────────────────────────────────── */
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword)
+      return res.status(400).json({ message: 'সব তথ্য দিন' });
+    if (newPassword.length < 6)
+      return res.status(400).json({ message: 'কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন' });
+
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user || !user.resetOtp)
+      return res.status(400).json({ message: 'OTP পাওয়া যায়নি। আবার চেষ্টা করুন।' });
+    if (user.resetOtp !== String(otp))
+      return res.status(400).json({ message: 'OTP সঠিক নয়' });
+    if (new Date() > user.resetOtpExpiry)
+      return res.status(400).json({ message: 'OTP মেয়াদ শেষ। আবার OTP নিন।' });
+
+    user.password = newPassword; // User model should hash on save
+    user.resetOtp = undefined;
+    user.resetOtpExpiry = undefined;
+    await user.save();
+
+    res.json({ message: 'পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 export default router;
+

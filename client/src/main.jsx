@@ -6,21 +6,27 @@ import App from './App.jsx';
 import './apiBase.js';
 import './index.css';
 
-// Register service worker — auto-update silently in background
+// Register service worker — auto-update silently
 registerSW({
-  onNeedRefresh() {
-    // New version available — reload automatically (no prompt needed for this app)
-    window.location.reload();
-  },
-  onOfflineReady() {
-    console.log('কারিগরি অফলাইনে কাজ করতে প্রস্তুত');
-  },
+  onNeedRefresh() { window.location.reload(); },
+  onOfflineReady() { /* ready */ },
 });
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+const root = document.getElementById('root');
+
+// StrictMode in dev only — production avoids double-render overhead
+if (import.meta.env.DEV) {
+  ReactDOM.createRoot(root).render(
+    <React.StrictMode>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </React.StrictMode>
+  );
+} else {
+  ReactDOM.createRoot(root).render(
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </React.StrictMode>
-);
+  );
+}

@@ -10,24 +10,50 @@
     <meta name="description" content="কারিগরি — বাংলাদেশের #১ লোকাল সার্ভিস প্ল্যাটফর্ম। ঢাকা, গাজীপুর, চট্টগ্রাম, সিলেটসহ সারা বাংলাদেশে যাচাইকৃত প্লাম্বার, ইলেক্ট্রিশিয়ান, এসি মেকানিক, ক্লিনার ও কাঠমিস্ত্রি খুঁজুন। সরাসরি যোগাযোগ, কোনো কমিশন নেই।" />
     <meta name="keywords" content="plumber dhaka, electrician dhaka, AC repair dhaka, plumber gazipur, electrician gazipur, প্লাম্বার ঢাকা, ইলেক্ট্রিশিয়ান ঢাকা, এসি মেকানিক ঢাকা, বিশ্বস্ত কারিগর বাংলাদেশ, karigori" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
-    <meta name="theme-color" content="#0F172A" />
-    <meta name="msapplication-TileColor" content="#0F172A" />
+    <meta name="theme-color" content="#006A4E" />
+    <meta name="msapplication-TileColor" content="#006A4E" />
+    <meta name="color-scheme" content="light" />
 
     <!-- Open Graph -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://karigori.org/" />
-    <meta property="og:title" content="কারিগরি — বাংলাদেশের #১ লোকাল সার্ভিস প্ল্যাটফর্ম" />
+    <meta property="og:type"        content="website" />
+    <meta property="og:url"         content="https://karigori.org/" />
+    <meta property="og:title"       content="কারিগরি — বাংলাদেশের #১ লোকাল সার্ভিস প্ল্যাটফর্ম" />
     <meta property="og:description" content="যাচাইকৃত প্লাম্বার, ইলেক্ট্রিশিয়ান, ক্লিনার ও আরও অনেক পেশাদার। সরাসরি যোগাযোগ, কোনো কমিশন নেই।" />
-    <meta property="og:image" content="https://karigori.org/og-image.png" />
-    <meta property="og:locale" content="bn_BD" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image"       content="https://karigori.org/og-image.png" />
+    <meta property="og:locale"      content="bn_BD" />
+    <meta name="twitter:card"       content="summary_large_image" />
     <link rel="canonical" href="https://karigori.org/" />
     <link rel="manifest" href="/site.webmanifest" />
 
-    <!-- Noto Sans Bengali — primary font for ALL text -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <!-- ── DNS prefetch / preconnect for all external origins ── -->
+    <link rel="preconnect"    href="https://fonts.googleapis.com" />
+    <link rel="preconnect"    href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch"  href="https://api.dicebear.com" />
+    <link rel="dns-prefetch"  href="https://fonts.googleapis.com" />
+
+    <!-- ── Font: preload woff2 subset first, then full stylesheet ── -->
+    <!-- display=swap: text visible immediately with system font fallback -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <!-- ── Inline critical CSS: prevents layout shift before JS loads ── -->
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      html { font-family: "Noto Sans Bengali", system-ui, sans-serif; scroll-behavior: smooth; }
+      body { margin: 0; background: #F8FAFC; color: #0F172A; -webkit-font-smoothing: antialiased; }
+      #root { min-height: 100svh; }
+      /* Prevent flash of unstyled loading spinner */
+      #root:empty::after {
+        content: '';
+        display: block;
+        width: 32px; height: 32px;
+        margin: 40vh auto 0;
+        border: 3px solid #dcfce7;
+        border-top-color: #006A4E;
+        border-radius: 50%;
+        animation: _spin .7s linear infinite;
+      }
+      @keyframes _spin { to { transform: rotate(360deg); } }
+    </style>
 
     <!-- Structured Data -->
     <script type="application/ld+json">

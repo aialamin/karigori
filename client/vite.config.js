@@ -1,21 +1,32 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { compression } from 'vite-plugin-compression2';
 
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      // Babel fast-refresh only in dev; no overhead in prod
+      babel: { plugins: [] },
+    }),
+
+    // ── Brotli + Gzip pre-compressed assets ──
+    // Nginx/Caddy/Vercel will serve .br / .gz automatically
+    compression({ algorithm: 'brotliCompress', exclude: [/\.(png|jpg|webp|ico|woff2)$/] }),
+    compression({ algorithm: 'gzip',           exclude: [/\.(png|jpg|webp|ico|woff2)$/] }),
+
     VitePWA({
-      registerType: 'autoUpdate',          // silently update SW when new version ships
+      registerType: 'autoUpdate',
       injectRegister: 'auto',
       workbox: {
-        // ── Cache these on install ──
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-
-        // ── Runtime caching strategies ──
+        // Skip waiting so new SW activates instantly
+        skipWaiting: true,
+        clientsClaim: true,
+        // Inline small assets into the SW precache list
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MB
         runtimeCaching: [
           {
-            // Google Fonts stylesheet
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
@@ -25,7 +36,6 @@ export default defineConfig({
             },
           },
           {
-            // Google Fonts actual font files
             urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
@@ -35,17 +45,15 @@ export default defineConfig({
             },
           },
           {
-            // API — workers list (stale-while-revalidate: show cached instantly, refresh in bg)
             urlPattern: /\/api\/workers(\?.*)?$/,
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'api-workers',
-              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 6 }, // 6 hours
+              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 6 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
           {
-            // API — config/categories (cache for 24h)
             urlPattern: /\/api\/config.*/,
             handler: 'CacheFirst',
             options: {
@@ -55,27 +63,24 @@ export default defineConfig({
             },
           },
           {
-            // Worker profile pages
             urlPattern: /\/api\/workers\/[a-z0-9]+$/i,
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'api-worker-profiles',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 2 }, // 2 hours
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 2 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
           {
-            // Worker photos / uploaded images
             urlPattern: /\/uploads\/.*/,
             handler: 'CacheFirst',
             options: {
               cacheName: 'worker-images',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 }, // 7 days
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
           {
-            // DiceBear avatars
             urlPattern: /^https:\/\/api\.dicebear\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
@@ -101,27 +106,47 @@ export default defineConfig({
       },
     }),
   ],
+
   server: {
     port: 3000,
     proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      },
-      '/uploads': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      },
+      '/api':     { target: 'http://localhost:5000', changeOrigin: true },
+      '/uploads': { target: 'http://localhost:5000', changeOrigin: true },
     },
   },
+
   build: {
-    // Chunk splitting — vendor libs in separate cache-busted chunks
+    // Modern targets — smaller output, no legacy polyfills
+    target: ['es2020', 'chrome90', 'firefox88', 'safari14'],
+    // Don't report compressed sizes (faster build output)
+    reportCompressedSize: false,
+    // Raise chunk warning threshold — we split manually below
+    chunkSizeWarningLimit: 600,
+    cssMinify: true,
+    minify: 'esbuild', // esbuild is 20-40x faster than terser with near-identical output
+
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'lucide':       ['lucide-react'],
+        // Fine-grained manual chunks — each loads/caches independently
+        manualChunks(id) {
+          // React core — tiny, changes rarely → long cache
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
+            return 'react-core';
+          }
+          // Router — changes rarely
+          if (id.includes('node_modules/react-router')) return 'react-router';
+          // Helmet (SEO) — changes rarely
+          if (id.includes('node_modules/react-helmet-async')) return 'helmet';
+          // Lucide icons — large but stable
+          if (id.includes('node_modules/lucide-react')) return 'lucide';
+          // xlsx — only used in admin, lazy-load separately
+          if (id.includes('node_modules/xlsx')) return 'xlsx';
+          // Workbox (SW) — already in its own chunk by PWA plugin
         },
+        // Deterministic file names for long-term caching
+        entryFileNames:  'assets/[name]-[hash].js',
+        chunkFileNames:  'assets/[name]-[hash].js',
+        assetFileNames:  'assets/[name]-[hash][extname]',
       },
     },
   },

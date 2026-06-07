@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Camera, Save, CheckCircle2, RefreshCw, MapPin, Star, Phone, Upload, CreditCard, FileText, X, ZoomIn, Languages as LangIcon, MessageSquare, ChevronRight } from 'lucide-react';
+import { Camera, Save, CheckCircle2, RefreshCw, MapPin, Star, Phone, Upload, CreditCard, FileText, X, ZoomIn, Languages as LangIcon, MessageSquare, ChevronRight, Heart, Copy, Smartphone } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getCategoryInfo } from '../constants.js';
 import { useConfig } from '../context/ConfigContext.jsx';
@@ -278,6 +278,131 @@ function OTPVerification({ wp, token, onSuccess }) {
   );
 }
 
+/* ── Donation Card ── */
+const DONATE_INFO = {
+  bkash:  { label: 'bKash',  number: '01700-000000', color: '#e2136e', bg: '#fdf2f8', emoji: '💗' },
+  nagad:  { label: 'Nagad',  number: '01700-000001', color: '#f7941d', bg: '#fff7ed', emoji: '🟠' },
+  rocket: { label: 'Rocket', number: '01700-000002', color: '#8b2fc9', bg: '#faf5ff', emoji: '💜' },
+};
+const AMOUNTS = [50, 100, 200, 500];
+
+function DonationCard() {
+  const [amount,   setAmount]   = useState(100);
+  const [custom,   setCustom]   = useState('');
+  const [method,   setMethod]   = useState('bkash');
+  const [copied,   setCopied]   = useState(false);
+  const [step,     setStep]     = useState(1); // 1=select 2=pay
+
+  const info   = DONATE_INFO[method];
+  const finalAmt = custom ? Number(custom) : amount;
+
+  function copyNumber() {
+    navigator.clipboard?.writeText(info.number.replace(/-/g, ''));
+    setCopied(true); setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-4 flex items-center gap-3"
+        style={{ background: 'linear-gradient(135deg, #006A4E 0%, #004d38 100%)' }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: 'rgba(255,255,255,0.15)' }}>
+          <Heart className="w-5 h-5 text-red-300 fill-red-300" />
+        </div>
+        <div>
+          <h3 className="font-black text-white text-sm">অ্যাপটি চালু রাখতে সাহায্য করুন</h3>
+          <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
+            কারিগরি বিনামূল্যে চলে — আপনার সাপোর্টেই
+          </p>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-3">
+        {/* Amount selector */}
+        <div>
+          <p className="text-xs font-bold text-gray-500 mb-1.5">পরিমাণ বেছে নিন</p>
+          <div className="grid grid-cols-4 gap-1.5 mb-2">
+            {AMOUNTS.map((a) => (
+              <button key={a} onClick={() => { setAmount(a); setCustom(''); }}
+                className="py-1.5 rounded-xl text-xs font-black border-2 transition-all"
+                style={(!custom && amount === a)
+                  ? { background: '#006A4E', color: '#fff', borderColor: '#006A4E' }
+                  : { background: '#f9fafb', color: '#374151', borderColor: '#e5e7eb' }}>
+                ৳{a}
+              </button>
+            ))}
+          </div>
+          <input
+            type="number" placeholder="নিজে লিখুন (৳)"
+            value={custom} onChange={(e) => setCustom(e.target.value)}
+            className="w-full text-xs border-2 border-gray-200 focus:border-green-400 rounded-xl px-3 py-2 outline-none transition-colors"
+          />
+        </div>
+
+        {/* Method selector */}
+        <div>
+          <p className="text-xs font-bold text-gray-500 mb-1.5">পেমেন্ট মাধ্যম</p>
+          <div className="grid grid-cols-3 gap-1.5">
+            {Object.entries(DONATE_INFO).map(([key, m]) => (
+              <button key={key} onClick={() => setMethod(key)}
+                className="py-2 rounded-xl text-[11px] font-black border-2 transition-all"
+                style={method === key
+                  ? { background: m.bg, borderColor: m.color, color: m.color }
+                  : { background: '#f9fafb', borderColor: '#e5e7eb', color: '#6b7280' }}>
+                {m.emoji} {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Instructions */}
+        <div className="rounded-xl p-3 space-y-2" style={{ background: info.bg }}>
+          <p className="text-[11px] font-black" style={{ color: info.color }}>
+            {info.emoji} {info.label}-এ পাঠান:
+          </p>
+          {/* Number + copy */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-1.5 bg-white rounded-lg px-3 py-2 border"
+              style={{ borderColor: info.color + '40' }}>
+              <Smartphone style={{ width: 12, height: 12, color: info.color, flexShrink: 0 }} />
+              <span className="text-xs font-black tracking-wider" style={{ color: info.color }}>
+                {info.number}
+              </span>
+            </div>
+            <button onClick={copyNumber}
+              className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-2 rounded-lg transition-all"
+              style={{ background: copied ? '#dcfce7' : info.color + '15', color: copied ? '#16a34a' : info.color }}>
+              {copied ? <CheckCircle2 style={{ width: 12, height: 12 }} /> : <Copy style={{ width: 12, height: 12 }} />}
+              {copied ? 'কপি!' : 'কপি'}
+            </button>
+          </div>
+          {/* Steps */}
+          <ol className="space-y-1 mt-1">
+            {[
+              `${info.label} অ্যাপ খুলুন → Send Money`,
+              `নম্বর দিন: ${info.number}`,
+              `পরিমাণ দিন: ৳${finalAmt || '—'}`,
+              'Reference: Karigori Support',
+            ].map((s, i) => (
+              <li key={i} className="flex gap-2 text-[10px]" style={{ color: info.color + 'cc' }}>
+                <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-black shrink-0 mt-0.5"
+                  style={{ background: info.color, color: '#fff' }}>{i + 1}</span>
+                {s}
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        {/* Impact note */}
+        <p className="text-[10px] text-center text-gray-400 leading-relaxed">
+          💚 আপনার সাহায্যে কারিগরি বিনামূল্যে চলতে পারে এবং হাজারো কারিগর কাজ পায়
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /* ── NID & Certificate section ── */
 function NIDSection({ wp, nidNumber, setNidNumber, onSave, saving, saved, error }) {
   const [nidFrontFile, setNidFrontFile] = useState(null);
@@ -372,7 +497,7 @@ export default function WorkerDashboard() {
         available:  workerProfile.available ?? true,
       });
     }
-  }, [workerProfile]);
+  }, [workerProfile, user]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const toggleArea = (a) => setAreas((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]);
@@ -421,7 +546,9 @@ export default function WorkerDashboard() {
       });
       const data = await res.json();
       if (res.ok) { updateWorkerProfile(data.worker); setWp(data.worker); }
-    } finally { setPhotoLoad(false); }
+      else { setError(data.message || 'ছবি আপলোড ব্যর্থ হয়েছে'); }
+    } catch { setError('নেটওয়ার্ক সমস্যা — ছবি আপলোড হয়নি'); }
+    finally { setPhotoLoad(false); }
   }
 
   if (!wp) return (
@@ -528,6 +655,9 @@ export default function WorkerDashboard() {
             nidBack={wp.nidBack}
             selfie={wp.selfieWithId}
           />
+
+          {/* Donation card */}
+          <DonationCard />
 
           {wp.reuploadRequested && (
             <Alert type="warning">

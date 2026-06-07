@@ -29,7 +29,7 @@ const workerSchema = new mongoose.Schema({
   subcategories:   [{ type: String }],   // e.g. ['Pipe repair','AC gas refill']
 
   // Account status
-  status:        { type: String, enum: ['pending','approved','rejected'], default: 'approved' },
+  status:        { type: String, enum: ['pending','approved','rejected'], default: 'pending' },
   rejectionNote: { type: String, default: '' },
   adminNote:     { type: String, default: '' },
   reviewedAt:    { type: Date },
@@ -71,7 +71,13 @@ const workerSchema = new mongoose.Schema({
   }],
 }, { timestamps: true });
 
+// Compound indexes for common query patterns
+workerSchema.index({ status: 1, verificationLevel: 1, category: 1 }); // browse filter
+workerSchema.index({ status: 1, verificationLevel: 1, rating: -1 });  // top-rated sort
 workerSchema.index({ category: 1, areas: 1, status: 1, verificationLevel: 1 });
+workerSchema.index({ userId: 1 }, { unique: true, sparse: true });    // profile lookup
 workerSchema.index({ nidNumber: 1 });
+workerSchema.index({ createdAt: -1 });                                // admin list (newest first)
+workerSchema.index({ name: 'text', bio: 'text', areas: 'text' });    // full-text search
 
 export default mongoose.model('Worker', workerSchema);

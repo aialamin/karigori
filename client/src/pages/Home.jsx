@@ -390,9 +390,9 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 relative">
             <div className="hidden sm:block absolute top-10 left-[calc(33%+2rem)] right-[calc(33%+2rem)] h-0.5 bg-gradient-to-r from-green-200 via-green-400 to-green-200" />
             {[
-              { n: '01', icon: Search,   title: 'কারিগর খুঁজুন',       desc: 'এলাকা ও সার্ভিস দিয়ে ফিল্টার করুন, রেটিং দেখুন।' },
-              { n: '02', icon: Star,     title: 'প্রোফাইল দেখুন',       desc: 'রেটিং, অভিজ্ঞতা ও যাচাইকরণ স্ট্যাটাস চেক করুন।' },
-              { n: '03', icon: Phone,    title: 'সরাসরি যোগাযোগ করুন', desc: 'কোনো মধ্যস্থতাকারী নেই — সরাসরি কল করুন।' },
+              { n: '০১', icon: Search,   title: 'কারিগর খুঁজুন',       desc: 'এলাকা ও সার্ভিস দিয়ে ফিল্টার করুন, রেটিং দেখুন।' },
+              { n: '০২', icon: Star,     title: 'প্রোফাইল দেখুন',       desc: 'রেটিং, অভিজ্ঞতা ও যাচাইকরণ স্ট্যাটাস চেক করুন।' },
+              { n: '০৩', icon: Phone,    title: 'সরাসরি যোগাযোগ করুন', desc: 'কোনো মধ্যস্থতাকারী নেই — সরাসরি কল করুন।' },
             ].map(({ n, icon: Icon, title, desc }) => (
               <div key={n} className="relative flex flex-col items-center text-center p-6 bg-surface rounded-card border border-gray-100 hover:shadow-card transition-all">
                 <div className="absolute -top-3 -right-3 w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-black shadow-md" style={{ background: '#006A4E' }}>{n}</div>

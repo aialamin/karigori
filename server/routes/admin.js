@@ -161,4 +161,58 @@ router.get('/clients/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+/* ── All users (workers + clients, searchable) ── */
+router.get('/users', async (req, res) => {
+  try {
+    const { q, role } = req.query;
+    const filter = { role: { $in: ['worker', 'client'] } };
+    if (role && ['worker', 'client'].includes(role)) filter.role = role;
+    if (q?.trim()) {
+      const rx = new RegExp(q.trim(), 'i');
+      filter.$or = [
+        { name: rx },
+        { email: rx },
+        { phone: rx },
+        { area: rx },
+      ];
+    }
+    const users = await User.find(filter).select('-password -resetOtp -resetOtpExpiry').sort({ createdAt: -1 });
+    res.json(users);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+/* ── Update any user (name, email, phone, area, role) ── */
+router.put('/users/:id', async (req, res) => {
+  try {
+    const { name, email, phone, area, role } = req.body;
+    const update = {};
+    if (name  !== undefined) update.name  = name.trim();
+    if (email !== undefined) update.email = email.trim().toLowerCase();
+    if (phone !== undefined) update.phone = phone.trim();
+    if (area  !== undefined) update.area  = area.trim();
+    if (role  !== undefined && ['worker', 'client', 'admin'].includes(role)) update.role = role;
+
+    const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password -resetOtp -resetOtpExpiry');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    if (err.code === 11000) return res.status(400).json({ message: 'এই ইমেইল বা ফোন নম্বর ইতিমধ্যে ব্যবহৃত' });
+    res.status(500).json({ message: err.message });
+  }
+});
+
+/* ── Delete user ── */
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Not found' });
+    // Also clean up worker profile if applicable
+    if (user.role === 'worker') {
+      await Worker.deleteOne({ userId: req.params.id });
+    }
+    res.json({ message: 'ব্যবহারকারী মুছে ফেলা হয়েছে' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 export default router;
+

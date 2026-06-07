@@ -5,7 +5,7 @@ import {
   CreditCard, FileText, Star, StickyNote, Calendar, Mail,
   ShieldCheck, AlertCircle, ZoomIn, ShieldAlert, Upload, Download,
   Flag, AlertTriangle, Eye, MousePointerClick, Search as SearchIcon, TrendingUp,
-  LayoutGrid, Zap,
+  LayoutGrid, Zap, Heart, Radio, EyeOff,
 } from 'lucide-react';
 import { getLevelInfo } from '../components/VerificationBadge.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -107,7 +107,8 @@ function WorkerDetail({ workerId, token, onAction }) {
   }
   async function handleFlag() {
     setActing('flag');
-    await api(`/api/admin/workers/${workerId}/flag`, { flag: !w.flagged, reason: rejNote || 'Flagged by admin' });
+    const w = data?.worker;
+    await api(`/api/admin/workers/${workerId}/flag`, { flag: !w?.flagged, reason: rejNote || 'Flagged by admin' });
     setActing(''); onAction();
   }
   async function saveNote() {
@@ -462,7 +463,8 @@ function ClientRow({ client }) {
 function AnalyticsPanel({ token }) {
   const [data, setData]     = useState(null);
   const [loading, setLoad]  = useState(true);
-  const [period, setPeriod] = useState('today'); // today | monthly | yearly
+  const [period, setPeriod] = useState('today');
+  const [activeChart, setActiveChart] = useState('pageViews');
 
   useEffect(() => {
     fetch('/api/analytics/summary', { headers: { Authorization: `Bearer ${token()}` } })
@@ -475,66 +477,131 @@ function AnalyticsPanel({ token }) {
   const d = period === 'today' ? data.today : period === 'monthly' ? data.monthly : data.yearly;
 
   const STAT_COLS = [
-    { icon: Eye,             label: 'Page Views',      val: d?.pageViews    || 0, color: 'text-blue-600 bg-blue-50' },
-    { icon: Users,           label: 'Unique Visitors', val: d?.uniqueVisitors || 0, color: 'text-purple-600 bg-purple-50' },
-    { icon: MousePointerClick,label: 'Phone Clicks',  val: d?.phoneClicks  || 0, color: 'text-emerald-600 bg-emerald-50' },
-    { icon: SearchIcon,      label: 'Searches',        val: d?.searches     || 0, color: 'text-amber-600 bg-amber-50' },
-    { icon: BarChart3,       label: 'Worker Views',    val: d?.workerViews  || 0, color: 'text-brand-600 bg-brand-50' },
+    { icon: Eye,              label: 'Page Views',      val: d?.pageViews      || 0, color: '#2563eb',  bg: '#eff6ff',  key: 'pageViews' },
+    { icon: Users,            label: 'Visitors',        val: d?.uniqueVisitors || 0, color: '#7c3aed',  bg: '#f5f3ff',  key: 'uniqueVisitors' },
+    { icon: MousePointerClick,label: 'Phone Clicks',    val: d?.phoneClicks    || 0, color: '#006A4E',  bg: '#f0fdf4',  key: 'phoneClicks' },
+    { icon: SearchIcon,       label: 'Searches',        val: d?.searches       || 0, color: '#d97706',  bg: '#fffbeb',  key: 'searches' },
+    { icon: BarChart3,        label: 'Worker Views',    val: d?.workerViews    || 0, color: '#0891b2',  bg: '#ecfeff',  key: 'workerViews' },
+    { icon: TrendingUp,       label: 'Donations (৳)',   val: d?.donations      || 0, color: '#be123c',  bg: '#fff1f2',  key: 'donations' },
   ];
 
+  /* Fake donation summary for UI (real data comes from backend) */
+  const DONATION_SUMMARY = {
+    total:   d?.donations       || 0,
+    count:   d?.donationCount   || 0,
+    avg:     d?.donationAvg     || 0,
+    bkash:   d?.donationBkash   || 0,
+    nagad:   d?.donationNagad   || 0,
+    rocket:  d?.donationRocket  || 0,
+  };
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Period tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {[['today','আজকে'], ['monthly','৩০ দিন'], ['yearly','১ বছর']].map(([k, lbl]) => (
           <button key={k} onClick={() => setPeriod(k)}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all font-bn ${period === k ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all ${period === k ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
             {lbl}
           </button>
         ))}
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {STAT_COLS.map(({ icon: Icon, label, val, color }) => (
-          <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2 ${color}`}>
-              <Icon className="w-5 h-5" />
+      {/* Stat cards — 2 col on mobile, 3 col on sm, 6 col on lg */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {STAT_COLS.map(({ icon: Icon, label, val, color, bg, key }) => (
+          <button key={label} onClick={() => setActiveChart(key)}
+            className="bg-white rounded-2xl border shadow-sm p-3 sm:p-4 text-center transition-all hover:shadow-md"
+            style={{ borderColor: activeChart === key ? color : '#f3f4f6', boxShadow: activeChart === key ? `0 0 0 2px ${color}30` : undefined }}>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center mx-auto mb-1.5 sm:mb-2" style={{ background: bg }}>
+              <Icon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color }} />
             </div>
-            <div className="text-2xl font-extrabold text-gray-900">{val.toLocaleString()}</div>
-            <div className="text-[11px] text-gray-400 mt-0.5">{label}</div>
-          </div>
+            <div className="text-xl sm:text-2xl font-extrabold text-gray-900">{val.toLocaleString()}</div>
+            <div className="text-[10px] sm:text-[11px] text-gray-400 mt-0.5 leading-tight">{label}</div>
+          </button>
         ))}
       </div>
 
-      {/* 30-day chart (simple bars) */}
+      {/* Chart */}
       {data.chartData?.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h3 className="font-bold text-gray-900 mb-4 text-sm">Page Views — Last 30 Days</h3>
-          <div className="flex items-end gap-1 h-32 overflow-x-auto scrollbar-hide">
-            {data.chartData.map((d) => {
-              const max = Math.max(...data.chartData.map((x) => x.pageViews), 1);
-              const pct = (d.pageViews / max) * 100;
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h3 className="font-bold text-gray-900 text-sm">
+              {STAT_COLS.find((s) => s.key === activeChart)?.label} — গত ৩০ দিন
+            </h3>
+            <div className="flex gap-1.5">
+              {STAT_COLS.slice(0, 4).map((s) => (
+                <button key={s.key} onClick={() => setActiveChart(s.key)}
+                  className="text-[10px] font-bold px-2 py-1 rounded-lg transition-all"
+                  style={activeChart === s.key ? { background: s.color, color:'#fff' } : { background:'#f3f4f6', color:'#6b7280' }}>
+                  {s.label.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-end gap-0.5 sm:gap-1 h-28 sm:h-36 overflow-x-auto">
+            {data.chartData.map((row) => {
+              const val = row[activeChart] ?? row.pageViews ?? 0;
+              const max = Math.max(...data.chartData.map((x) => x[activeChart] ?? x.pageViews ?? 0), 1);
+              const pct = (val / max) * 100;
+              const col = STAT_COLS.find((s) => s.key === activeChart)?.color || '#006A4E';
               return (
-                <div key={d.date} className="flex flex-col items-center gap-1 flex-1 min-w-[20px]"
-                  title={`${d.date}: ${d.pageViews} views`}>
-                  <div className="w-full bg-brand-500 rounded-t-sm transition-all"
-                    style={{ height: `${Math.max(pct, 2)}%` }} />
-                  <span className="text-[8px] text-gray-400 rotate-45 origin-left hidden sm:block">
-                    {d.date.slice(5)}
+                <div key={row.date} className="flex flex-col items-center gap-0.5 flex-1 min-w-[12px] sm:min-w-[18px] group"
+                  title={`${row.date}: ${val}`}>
+                  <div className="w-full rounded-t-sm transition-all"
+                    style={{ height:`${Math.max(pct, 2)}%`, background: col, opacity: 0.85 }} />
+                  <span className="text-[7px] sm:text-[8px] text-gray-300 hidden sm:block">
+                    {row.date?.slice(5)}
                   </span>
                 </div>
               );
             })}
           </div>
-          <div className="flex gap-4 mt-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-brand-500 rounded-sm inline-block" /> Page Views</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-400 rounded-sm inline-block" /> Phone Clicks</span>
-          </div>
         </div>
       )}
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 font-bn">
+      {/* Donation breakdown card */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background:'#fff1f2' }}>
+            <Heart className="w-4 h-4" style={{ color:'#be123c' }} />
+          </div>
+          <h3 className="font-bold text-gray-900 text-sm">ডোনেশন সারসংক্ষেপ</h3>
+          <span className="text-xs text-gray-400 ml-auto">{period === 'today' ? 'আজকে' : period === 'monthly' ? '৩০ দিন' : '১ বছর'}</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+          {[
+            { label: 'মোট ডোনেশন', val: `৳${DONATION_SUMMARY.total.toLocaleString()}`, color:'#be123c' },
+            { label: 'ডোনার সংখ্যা', val: DONATION_SUMMARY.count, color:'#7c3aed' },
+            { label: 'গড় ডোনেশন',   val: `৳${DONATION_SUMMARY.avg}`, color:'#d97706' },
+          ].map(({ label, val, color }) => (
+            <div key={label} className="rounded-xl p-3 text-center" style={{ background:'#f9fafb' }}>
+              <p className="text-lg font-extrabold" style={{ color }}>{val || '০'}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{label}</p>
+            </div>
+          ))}
+        </div>
+        {/* Payment method breakdown */}
+        <div className="space-y-2">
+          {[
+            { label:'bKash',  val: DONATION_SUMMARY.bkash,  color:'#E2136E', pct: DONATION_SUMMARY.total ? Math.round(DONATION_SUMMARY.bkash/DONATION_SUMMARY.total*100) : 0 },
+            { label:'Nagad',  val: DONATION_SUMMARY.nagad,  color:'#F7941D', pct: DONATION_SUMMARY.total ? Math.round(DONATION_SUMMARY.nagad/DONATION_SUMMARY.total*100) : 0 },
+            { label:'Rocket', val: DONATION_SUMMARY.rocket, color:'#8B1A8B', pct: DONATION_SUMMARY.total ? Math.round(DONATION_SUMMARY.rocket/DONATION_SUMMARY.total*100) : 0 },
+          ].map(({ label, val, color, pct }) => (
+            <div key={label} className="flex items-center gap-3">
+              <span className="text-xs font-bold w-14 shrink-0" style={{ color }}>{label}</span>
+              <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{ width:`${pct}%`, background: color }} />
+              </div>
+              <span className="text-xs text-gray-500 font-bold w-10 text-right">৳{val || 0}</span>
+              <span className="text-xs text-gray-400 w-8 text-right">{pct}%</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 mt-3 italic">* ডোনেশন ট্র্যাকিং ক্লায়েন্ট ড্যাশবোর্ড থেকে আসে।</p>
+      </div>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800">
         <strong>নোট:</strong> প্রতিটি পেজ ভিজিট ও ফোন ক্লিক স্বয়ংক্রিয়ভাবে ট্র্যাক হয়। আইপি অ্যাড্রেস থেকে ইউনিক ভিজিটর গণনা করা হয়।
       </div>
     </div>
@@ -713,7 +780,7 @@ function SettingsPanel({ token }) {
   const [msg,          setMsg]          = useState('');
 
   /* Notice state */
-  const [notice, setNotice] = useState({ active: false, title: '', subtitle: '', message: '', type: 'info' });
+  const [notice, setNotice] = useState({ active: false, title: '', subtitle: '', message: '', type: 'info', layout: 'modal' });
   const [noticeSaving, setNoticeSaving] = useState(false);
   const [noticeMsg,    setNoticeMsg]    = useState('');
 
@@ -723,7 +790,7 @@ function SettingsPanel({ token }) {
       .then((d) => {
         setExtraCats(d.extraCategories || []);
         setExtraAreas(d.extraAreas || []);
-        if (d.notice) setNotice({ active: false, title: '', subtitle: '', message: '', type: 'info', ...d.notice });
+        if (d.notice) setNotice({ active: false, title: '', subtitle: '', message: '', type: 'info', layout: 'modal', ...d.notice });
       })
       .catch(() => {});
   }, []);
@@ -769,7 +836,7 @@ function SettingsPanel({ token }) {
     setNoticeSaving(true);
     const d = await auth('/api/config/notice', { method: 'PUT', body: JSON.stringify(notice) });
     if (d.notice) {
-      setNotice({ active: false, title: '', subtitle: '', message: '', type: 'info', ...d.notice });
+      setNotice({ active: false, title: '', subtitle: '', message: '', type: 'info', layout: 'modal', ...d.notice });
       setNoticeMsg(d.notice.active ? '✓ Notice published!' : '✓ Notice hidden.');
     } else {
       setNoticeMsg('✗ Save failed — check server.');
@@ -837,6 +904,209 @@ function SettingsPanel({ token }) {
           </div>
         </div>
 
+        {/* ── Layout selector ── */}
+        <div>
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">
+            Display Layout <span className="text-gray-300 normal-case font-normal">(কীভাবে দেখাবে)</span>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              /* ── MODAL ── */
+              {
+                key: 'modal', label: 'Modal Popup', labelBn: 'সেন্টার মোডাল',
+                preview: (
+                  /* Phone frame */
+                  <div className="h-28 rounded-xl overflow-hidden border border-gray-200 relative flex flex-col" style={{ background: '#f1f5f9' }}>
+                    {/* Blurred backdrop tint */}
+                    <div className="absolute inset-0" style={{ background: 'rgba(15,23,42,0.45)' }} />
+                    {/* Page content behind */}
+                    <div className="absolute inset-0 flex flex-col gap-1 p-2 pointer-events-none">
+                      <div className="h-2 w-10 rounded bg-gray-300/40" />
+                      <div className="h-1.5 w-16 rounded bg-gray-300/30" />
+                      <div className="h-1.5 w-12 rounded bg-gray-300/30" />
+                    </div>
+                    {/* Centered modal card */}
+                    <div className="absolute inset-0 flex items-center justify-center p-3">
+                      <div className="w-full bg-white rounded-xl shadow-2xl overflow-hidden" style={{ maxWidth: 120 }}>
+                        {/* Colored top bar */}
+                        <div className="h-5 flex items-center gap-1 px-2" style={{ background: 'linear-gradient(135deg,#2563eb,#1d4ed8)' }}>
+                          <div className="w-2.5 h-2.5 rounded-full bg-white/30 flex items-center justify-center shrink-0">
+                            <div className="w-1 h-1 rounded-full bg-white/80" />
+                          </div>
+                          <div className="flex-1 h-1 bg-white/50 rounded" />
+                          <div className="w-2 h-2 rounded-sm bg-white/20 shrink-0" />
+                        </div>
+                        {/* Body */}
+                        <div className="px-2 py-1.5 space-y-1">
+                          <div className="w-3/4 h-1.5 bg-gray-800 rounded" />
+                          <div className="w-full h-1 bg-gray-200 rounded" />
+                          <div className="w-5/6 h-1 bg-gray-200 rounded" />
+                          <div className="w-2/3 h-1 bg-gray-200 rounded" />
+                          {/* Timer arc hint */}
+                          <div className="flex items-center justify-between pt-0.5">
+                            <div className="w-6 h-1.5 rounded-full" style={{ background: '#2563eb' }} />
+                            <div className="w-3.5 h-3.5 rounded-full border-2 border-blue-200" style={{ borderTopColor: '#2563eb' }} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ),
+              },
+
+              /* ── BANNER ── */
+              {
+                key: 'banner', label: 'Top Banner', labelBn: 'টপ ব্যানার',
+                preview: (
+                  <div className="h-28 rounded-xl overflow-hidden border border-gray-200 flex flex-col" style={{ background: '#f8fafc' }}>
+                    {/* Navbar mockup */}
+                    <div className="h-4 flex items-center px-2 gap-1 shrink-0" style={{ background: '#1e293b' }}>
+                      <div className="w-2 h-2 rounded-sm bg-white/20" />
+                      <div className="flex-1 h-1 bg-white/15 rounded" />
+                      <div className="w-2 h-2 rounded-full bg-white/20" />
+                    </div>
+                    {/* Notice banner — slides in from top */}
+                    <div className="flex items-center gap-1.5 px-2 py-1.5 shrink-0" style={{ background: 'linear-gradient(90deg,#d97706,#f59e0b)', boxShadow: '0 2px 8px rgba(217,119,6,0.3)' }}>
+                      <div className="w-3 h-3 rounded-full bg-white/30 flex items-center justify-center shrink-0">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-0.5">
+                        <div className="w-16 h-1.5 bg-white/70 rounded" />
+                        <div className="w-12 h-1 bg-white/40 rounded" />
+                      </div>
+                      {/* countdown bar */}
+                      <div className="w-5 h-1 rounded-full bg-white/30 shrink-0">
+                        <div className="w-3 h-full rounded-full bg-white/70" />
+                      </div>
+                      <div className="w-2.5 h-2.5 rounded-sm bg-white/20 shrink-0 flex items-center justify-center">
+                        <div className="w-1 h-0.5 bg-white/80 rounded" />
+                        <div className="w-0.5 h-0.5 bg-white/80 rounded ml-px" style={{ transform: 'rotate(45deg)' }} />
+                      </div>
+                    </div>
+                    {/* Page content */}
+                    <div className="flex-1 p-2 space-y-1">
+                      <div className="w-10 h-1.5 bg-gray-200 rounded" />
+                      <div className="w-16 h-1 bg-gray-100 rounded" />
+                      <div className="w-12 h-1 bg-gray-100 rounded" />
+                    </div>
+                  </div>
+                ),
+              },
+
+              /* ── BOTTOM SHEET ── */
+              {
+                key: 'bottom-sheet', label: 'Bottom Sheet', labelBn: 'নিচ থেকে স্লাইড',
+                preview: (
+                  <div className="h-28 rounded-xl overflow-hidden border border-gray-200 flex flex-col relative" style={{ background: '#f8fafc' }}>
+                    {/* Page content */}
+                    <div className="flex-1 p-2 space-y-1">
+                      <div className="h-3 w-8 rounded" style={{ background: '#1e293b' }} />
+                      <div className="w-14 h-1 bg-gray-200 rounded" />
+                      <div className="w-10 h-1 bg-gray-100 rounded" />
+                    </div>
+                    {/* Dim overlay above sheet */}
+                    <div className="absolute inset-0" style={{ background: 'rgba(15,23,42,0.3)', bottom: 52 }} />
+                    {/* Bottom sheet */}
+                    <div className="shrink-0 bg-white shadow-2xl overflow-hidden" style={{ borderRadius: '12px 12px 0 0' }}>
+                      {/* Drag pill */}
+                      <div className="flex justify-center pt-1.5 pb-0.5">
+                        <div className="w-6 h-1 rounded-full bg-gray-300" />
+                      </div>
+                      {/* Header bar with color */}
+                      <div className="flex items-center gap-1.5 px-2 py-1" style={{ background: 'linear-gradient(90deg,#004d38,#006A4E)' }}>
+                        <div className="w-3 h-3 rounded-full bg-white/30 flex items-center justify-center shrink-0">
+                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                        </div>
+                        <div className="flex-1 space-y-0.5">
+                          <div className="w-14 h-1.5 bg-white/70 rounded" />
+                          <div className="w-10 h-1 bg-white/40 rounded" />
+                        </div>
+                        <div className="w-5 h-5 rounded-full border border-white/30 flex items-center justify-center shrink-0">
+                          <div className="text-white/60" style={{ fontSize: 6, lineHeight: 1 }}>✕</div>
+                        </div>
+                      </div>
+                      {/* Body */}
+                      <div className="px-2 py-1 space-y-0.5">
+                        <div className="w-full h-1 bg-gray-200 rounded" />
+                        <div className="w-4/5 h-1 bg-gray-100 rounded" />
+                        <div className="flex justify-end pt-0.5">
+                          <div className="w-8 h-2 rounded-md" style={{ background: '#006A4E' }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ),
+              },
+
+              /* ── TOAST ── */
+              {
+                key: 'toast', label: 'Toast / Corner', labelBn: 'কর্নার নোটিফিকেশন',
+                preview: (
+                  <div className="h-28 rounded-xl overflow-hidden border border-gray-200 relative" style={{ background: '#f8fafc' }}>
+                    {/* Page content */}
+                    <div className="p-2 space-y-1">
+                      <div className="h-3 w-8 rounded" style={{ background: '#1e293b' }} />
+                      <div className="w-14 h-1 bg-gray-200 rounded" />
+                      <div className="w-10 h-1 bg-gray-100 rounded" />
+                      <div className="w-16 h-1 bg-gray-100 rounded" />
+                    </div>
+                    {/* Toast card — bottom right */}
+                    <div className="absolute bottom-2 right-2 bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100" style={{ width: 90 }}>
+                      {/* Left accent */}
+                      <div className="flex">
+                        <div className="w-1.5 shrink-0" style={{ background: '#be123c' }} />
+                        <div className="flex-1 px-1.5 py-1.5 space-y-0.5">
+                          {/* Row: icon + title + close */}
+                          <div className="flex items-center gap-1">
+                            <div className="w-2.5 h-2.5 rounded-full shrink-0 flex items-center justify-center" style={{ background: '#fff1f2' }}>
+                              <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#be123c' }} />
+                            </div>
+                            <div className="flex-1 h-1.5 bg-gray-700 rounded" />
+                            <div className="w-1.5 h-1.5 rounded-sm bg-gray-200 shrink-0" />
+                          </div>
+                          {/* Message lines */}
+                          <div className="w-full h-1 bg-gray-200 rounded" />
+                          <div className="w-3/4 h-1 bg-gray-100 rounded" />
+                          {/* Progress bar */}
+                          <div className="w-full h-0.5 rounded-full bg-gray-100 mt-0.5">
+                            <div className="w-2/3 h-full rounded-full" style={{ background: '#be123c' }} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ),
+              },
+            ].map(({ key, label, labelBn, preview }) => {
+              const active = notice.layout === key;
+              return (
+                <button key={key} type="button"
+                  onClick={() => setNotice((n) => ({ ...n, layout: key }))}
+                  className="text-left rounded-2xl border-2 p-2 transition-all hover:shadow-md"
+                  style={active
+                    ? { borderColor: '#006A4E', background: '#f0fdf4', boxShadow: '0 0 0 1px #006A4E' }
+                    : { borderColor: '#e5e7eb', background: '#fafafa' }}>
+                  {preview}
+                  <div className="mt-2 px-0.5 flex items-start justify-between">
+                    <div>
+                      <p className="text-[11px] font-black leading-tight" style={{ color: active ? '#006A4E' : '#374151' }}>{label}</p>
+                      <p className="text-[9px] mt-0.5" style={{ color: active ? '#16a34a' : '#9ca3af' }}>{labelBn}</p>
+                    </div>
+                    <div className="w-4 h-4 rounded-full border-2 shrink-0 mt-0.5 flex items-center justify-center transition-all"
+                      style={active ? { borderColor: '#006A4E', background: '#006A4E' } : { borderColor: '#d1d5db', background: 'transparent' }}>
+                      {active && (
+                        <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                          <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Title */}
         <div>
           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Title <span className="text-red-400">*</span></label>
@@ -882,7 +1152,12 @@ function SettingsPanel({ token }) {
         <button onClick={saveNotice} disabled={noticeSaving}
           className="w-full text-white font-bold py-2.5 rounded-xl transition-all disabled:opacity-60"
           style={{ background: 'linear-gradient(135deg, #006A4E 0%, #16a34a 100%)' }}>
-          {noticeSaving ? 'Saving…' : notice.active ? '📢 Publish Notice' : '🙈 Hide Notice'}
+          {noticeSaving
+            ? <span className="flex items-center justify-center gap-2"><RefreshCw className="w-4 h-4 animate-spin" /> Saving…</span>
+            : notice.active
+              ? <span className="flex items-center justify-center gap-2"><Radio className="w-4 h-4" /> Publish Notice</span>
+              : <span className="flex items-center justify-center gap-2"><EyeOff className="w-4 h-4" /> Hide Notice</span>
+          }
         </button>
       </div>
 
@@ -1053,6 +1328,324 @@ function SettingsPanel({ token }) {
   );
 }
 
+/* ────── User Management Panel ────── */
+const ROLE_COLORS = {
+  worker: 'bg-green-100 text-green-700 border-green-300',
+  client: 'bg-blue-100 text-blue-700 border-blue-300',
+  admin:  'bg-purple-100 text-purple-700 border-purple-300',
+};
+
+function EditUserModal({ user, token, onSave, onClose }) {
+  const [form, setForm] = useState({
+    name:  user.name  || '',
+    email: user.email || '',
+    phone: user.phone || '',
+    area:  user.area  || '',
+    role:  user.role  || 'client',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  async function handleSave(e) {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim()) { setError('নাম ও ইমেইল আবশ্যক'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await fetch(`/api/admin/users/${user._id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const d = await res.json();
+      if (!res.ok) { setError(d.message || 'আপডেট ব্যর্থ'); return; }
+      onSave(d);
+    } catch { setError('নেটওয়ার্ক সমস্যা'); }
+    finally { setLoading(false); }
+  }
+
+  const inputCls = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-green-500 bg-white';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}>
+      <form onSubmit={handleSave} className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="px-6 py-4 bg-gray-900 flex items-center justify-between">
+          <div>
+            <p className="font-black text-white text-sm">ব্যবহারকারী সম্পাদনা</p>
+            <p className="text-xs text-gray-400 mt-0.5 truncate">{user.email}</p>
+          </div>
+          <button type="button" onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-3">
+          {error && (
+            <div className="px-3 py-2 rounded-xl text-xs font-medium bg-red-50 text-red-600 border border-red-200">{error}</div>
+          )}
+
+          <div>
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">নাম</label>
+            <input className={inputCls} value={form.name} onChange={set('name')} required placeholder="পূর্ণ নাম" />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">ইমেইল</label>
+            <input className={inputCls} type="email" value={form.email} onChange={set('email')} required />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">ফোন</label>
+              <input className={inputCls} value={form.phone} onChange={set('phone')} placeholder="01XXXXXXXXX" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">এলাকা</label>
+              <input className={inputCls} value={form.area} onChange={set('area')} placeholder="ঢাকা, মিরপুর..." />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">ভূমিকা (Role)</label>
+            <select className={inputCls + ' cursor-pointer'} value={form.role} onChange={set('role')}>
+              <option value="worker">কারিগর (Worker)</option>
+              <option value="client">ক্লায়েন্ট (Client)</option>
+              <option value="admin">অ্যাডমিন (Admin)</option>
+            </select>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all">
+              বাতিল
+            </button>
+            <button type="submit" disabled={loading}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-60"
+              style={{ background: '#006A4E' }}>
+              {loading ? 'সেভ হচ্ছে…' : 'সেভ করুন ✓'}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function UserRow({ user: initUser, token, onDelete }) {
+  const [user,    setUser]    = useState(initUser);
+  const [editing, setEditing] = useState(false);
+  const [delConf, setDelConf] = useState(false);
+  const [deleting,setDeleting]= useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user._id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      if (res.ok) onDelete(user._id);
+    } catch {} finally { setDeleting(false); setDelConf(false); }
+  }
+
+  const roleColor = ROLE_COLORS[user.role] || ROLE_COLORS.client;
+
+  return (
+    <>
+      {editing && (
+        <EditUserModal user={user} token={token}
+          onSave={(u) => { setUser(u); setEditing(false); }}
+          onClose={() => setEditing(false)} />
+      )}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3.5 flex flex-col sm:flex-row sm:items-center gap-3">
+        {/* Avatar */}
+        <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center font-black text-white text-base"
+          style={{ background: user.role === 'worker' ? '#006A4E' : user.role === 'admin' ? '#4f46e5' : '#2563eb' }}>
+          {(user.name?.[0] || '?').toUpperCase()}
+        </div>
+
+        {/* Main info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center flex-wrap gap-1.5 mb-0.5">
+            <span className="font-extrabold text-gray-900 text-sm truncate">{user.name}</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${roleColor}`}>
+              {user.role === 'worker' ? 'কারিগর' : user.role === 'client' ? 'ক্লায়েন্ট' : 'অ্যাডমিন'}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[11px] text-gray-500">
+            <span className="flex items-center gap-0.5">
+              <Mail className="w-3 h-3 shrink-0" />{user.email}
+            </span>
+            {user.phone && (
+              <span className="flex items-center gap-0.5">
+                <Phone className="w-3 h-3 shrink-0" />{user.phone}
+              </span>
+            )}
+            {user.area && (
+              <span className="flex items-center gap-0.5">
+                <MapPin className="w-3 h-3 shrink-0" />{user.area}
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] text-gray-400 mt-0.5">
+            নিবন্ধিত: {new Date(user.createdAt).toLocaleDateString('bn-BD')}
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={() => setEditing(true)}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all">
+            <Eye className="w-3.5 h-3.5" />সম্পাদনা
+          </button>
+          {!delConf ? (
+            <button onClick={() => setDelConf(true)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-red-50 hover:bg-red-100 text-red-600 transition-all">
+              <X className="w-3.5 h-3.5" />মুছুন
+            </button>
+          ) : (
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-red-600 font-bold">নিশ্চিত?</span>
+              <button onClick={handleDelete} disabled={deleting}
+                className="px-2 py-1 rounded-lg text-[10px] font-black bg-red-500 text-white hover:bg-red-600 disabled:opacity-60">
+                {deleting ? '…' : 'হ্যাঁ'}
+              </button>
+              <button onClick={() => setDelConf(false)}
+                className="px-2 py-1 rounded-lg text-[10px] font-black bg-gray-200 text-gray-700">না</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function UserManagementPanel({ token }) {
+  const [users,   setUsers]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search,  setSearch]  = useState('');
+  const [role,    setRole]    = useState('');
+  const searchRef = useRef(null);
+
+  async function loadUsers(q = '', r = '') {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (q.trim()) params.set('q', q.trim());
+      if (r) params.set('role', r);
+      const res = await fetch(`/api/admin/users?${params}`, {
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      const d = await res.json();
+      setUsers(Array.isArray(d) ? d : []);
+    } catch { setUsers([]); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadUsers(search, role); }, [role]);
+
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => loadUsers(search, role), 400);
+    return () => clearTimeout(t);
+  }, [search, role]);
+
+  function handleDelete(id) {
+    setUsers((u) => u.filter((x) => x._id !== id));
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center">
+            <Users className="w-4.5 h-4.5 text-indigo-600" />
+          </div>
+          <div>
+            <p className="font-extrabold text-gray-900 text-sm">সমস্ত ব্যবহারকারী</p>
+            <p className="text-xs text-gray-400">সব কারিগর + ক্লায়েন্ট — এক জায়গায় দেখুন ও সম্পাদনা করুন</p>
+          </div>
+          <div className="ml-auto">
+            <span className="text-lg font-black text-gray-800">{users.length}</span>
+            <span className="text-xs text-gray-400 ml-1">জন</span>
+          </div>
+        </div>
+
+        {/* Single unified search bar */}
+        <div className="relative mb-3">
+          <SearchIcon className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            ref={searchRef}
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="নাম, ইমেইল, ফোন নম্বর, এলাকা দিয়ে খুঁজুন…"
+            className="w-full pl-10 pr-10 py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-indigo-400 focus:bg-white transition-all"
+          />
+          {search && (
+            <button onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Role filter pills */}
+        <div className="flex gap-2 flex-wrap">
+          {[
+            { key: '', label: 'সবাই' },
+            { key: 'worker', label: 'কারিগর' },
+            { key: 'client', label: 'ক্লায়েন্ট' },
+          ].map((r) => (
+            <button key={r.key} onClick={() => setRole(r.key)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all
+                ${role === r.key ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>
+              {r.label}
+            </button>
+          ))}
+          {(search || role) && (
+            <button onClick={() => { setSearch(''); setRole(''); }}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-red-50 text-red-500 border border-red-200 hover:bg-red-100">
+              ✕ ক্লিয়ার
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Results */}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <RefreshCw className="w-6 h-6 text-gray-300 animate-spin" />
+        </div>
+      )}
+      {!loading && users.length === 0 && (
+        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+          <Users className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+          <p className="text-gray-400 font-medium">কোনো ব্যবহারকারী পাওয়া যায়নি</p>
+          {(search || role) && (
+            <p className="text-xs text-gray-400 mt-1">ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন</p>
+          )}
+        </div>
+      )}
+      {!loading && users.length > 0 && (
+        <div className="space-y-2">
+          {search && (
+            <p className="text-xs text-gray-400 font-medium px-1">
+              "{search}" — {users.length}টি ফলাফল
+            </p>
+          )}
+          {users.map((u) => (
+            <UserRow key={u._id} user={u} token={token} onDelete={handleDelete} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ────── Main Admin Dashboard ────── */
 export default function AdminDashboard() {
   const { token } = useAuth();
@@ -1086,8 +1679,8 @@ export default function AdminDashboard() {
   useEffect(() => { loadStats(); }, [loadStats]);
   useEffect(() => {
     if (view === 'workers') loadWorkers();
-    else loadClients();
-  }, [view, activeTab]);
+    else if (view === 'clients') loadClients();
+  }, [view, activeTab, loadWorkers, loadClients]);
 
   const STATUS_TABS = [
     { key: 'pending',  label: 'Pending',  icon: Clock,        cls: 'text-amber-600  bg-amber-50  border-amber-200' },
@@ -1102,83 +1695,159 @@ export default function AdminDashboard() {
     { label: 'Clients',       val: stats?.totalClients,    icon: BarChart3,    bg: 'bg-purple-50',  ic: 'text-purple-600' },
   ];
 
+  const [clientSearch, setClientSearch] = useState('');
+  const [clientSort,   setClientSort]   = useState('newest');
+  const [workerSearch, setWorkerSearch] = useState('');
+
+  const filteredClients = clients.filter((c) => {
+    if (!clientSearch.trim()) return true;
+    const q = clientSearch.toLowerCase();
+    return (
+      c.name?.toLowerCase().includes(q)  ||
+      c.email?.toLowerCase().includes(q) ||
+      c.phone?.toLowerCase().includes(q) ||
+      c.area?.toLowerCase().includes(q)
+    );
+  }).sort((a, b) => {
+    if (clientSort === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
+    if (clientSort === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+    if (clientSort === 'name')   return (a.name || '').localeCompare(b.name || '');
+    return 0;
+  });
+
+  const filteredWorkers = workers.filter((w) => {
+    if (!workerSearch.trim()) return true;
+    const q = workerSearch.toLowerCase();
+    return (
+      w.name?.toLowerCase().includes(q) ||
+      w.phone?.toLowerCase().includes(q) ||
+      w.category?.toLowerCase().includes(q) ||
+      w.area?.toLowerCase().includes(q)
+    );
+  });
+
+  const NAV_ITEMS = [
+    { key: 'workers',  label: 'কারিগর',   labelEn: 'Workers',    icon: Users },
+    { key: 'clients',  label: 'ক্লায়েন্ট', labelEn: 'Clients',    icon: Users },
+    { key: 'allusers', label: 'সব ইউজার', labelEn: 'All Users',  icon: Users },
+    { key: 'analytics',label: 'Analytics', labelEn: 'Analytics',  icon: BarChart3 },
+    { key: 'excel',    label: 'Excel',     labelEn: 'Excel',      icon: Download },
+    { key: 'settings', label: 'সেটিংস',   labelEn: 'Settings',   icon: LayoutGrid },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-purple-600 shrink-0" /> Admin Dashboard
-            </h1>
-            <p className="text-sm text-gray-400 mt-0.5">Review workers, manage accounts</p>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* ── Header ── */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          {/* Top row */}
+          <div className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-purple-100">
+                <ShieldCheck className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <h1 className="text-base font-extrabold text-gray-900 leading-none">Admin</h1>
+                <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">Karigori Dashboard</p>
+              </div>
+            </div>
+            {/* Stats mini strip — desktop only */}
+            <div className="hidden sm:flex items-center gap-3">
+              {STAT_CARDS.map(({ label, val, icon: Icon, ic }) => (
+                <div key={label} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-xl">
+                  <Icon className={`w-3.5 h-3.5 ${ic}`} />
+                  <span className="text-xs font-extrabold text-gray-900">{val ?? '—'}</span>
+                  <span className="text-xs text-gray-400 hidden md:block">{label}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-2">
-            {[
-              ['workers',  'Workers'],
-              ['clients',  'Clients'],
-              ['analytics','Analytics'],
-              ['excel',    'Excel Upload'],
-              ['settings', 'Settings'],
-            ].map(([v, lbl]) => (
-              <button key={v} onClick={() => setView(v)}
-                className={`flex-1 sm:flex-none text-sm font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap
-                  ${view === v ? 'bg-gray-900 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                {lbl}
+          {/* Tab nav — scrollable on mobile */}
+          <div className="flex gap-1 overflow-x-auto pb-2 -mx-1 px-1" style={{ scrollbarWidth:'none' }}>
+            {NAV_ITEMS.map(({ key, label, icon: Icon }) => (
+              <button key={key} onClick={() => setView(key)}
+                className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap"
+                style={view === key
+                  ? { background:'#1f2937', color:'#fff', boxShadow:'0 2px 8px rgba(0,0,0,0.15)' }
+                  : { background:'#f3f4f6', color:'#6b7280' }}>
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                {label}
+                {key === 'workers' && view !== 'workers' && (stats?.pendingWorkers || 0) > 0 && (
+                  <span className="bg-amber-400 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none">
+                    {stats.pendingWorkers}
+                  </span>
+                )}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-4">
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Mobile stats cards */}
+        <div className="grid grid-cols-2 sm:hidden gap-3">
           {STAT_CARDS.map(({ label, val, icon: Icon, bg, ic }) => (
-            <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
-                <Icon className={`w-5 h-5 ${ic}`} />
+            <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3.5 flex items-center gap-2.5">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
+                <Icon className={`w-4 h-4 ${ic}`} />
               </div>
               <div className="min-w-0">
-                <div className="text-xl sm:text-2xl font-extrabold text-gray-900">{val ?? '—'}</div>
-                <div className="text-xs text-gray-400 truncate">{label}</div>
+                <div className="text-lg font-extrabold text-gray-900">{val ?? '—'}</div>
+                <div className="text-xs text-gray-400 truncate leading-tight">{label}</div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Workers view */}
+        {/* ── Workers view ── */}
         {view === 'workers' && (
           <>
-            <div className="flex flex-wrap gap-2">
-              {STATUS_TABS.map((t) => (
-                <button key={t.key} onClick={() => setTab(t.key)}
-                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold border transition-all
-                    ${activeTab === t.key ? t.cls : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
-                  <t.icon className="w-4 h-4 shrink-0" />
-                  <span>{t.label}</span>
-                  {t.key === 'pending' && stats?.pendingWorkers > 0 && (
-                    <span className="bg-amber-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
-                      {stats.pendingWorkers}
-                    </span>
-                  )}
-                </button>
-              ))}
+            {/* Search + filter bar */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <SearchIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="search" value={workerSearch}
+                  onChange={(e) => setWorkerSearch(e.target.value)}
+                  placeholder="নাম, ফোন, ক্যাটাগরি, এলাকা..."
+                  className="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:border-green-500"
+                />
+              </div>
+              <div className="flex gap-2">
+                {STATUS_TABS.map((t) => (
+                  <button key={t.key} onClick={() => setTab(t.key)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all
+                      ${activeTab === t.key ? t.cls : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                    <t.icon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden sm:inline">{t.label}</span>
+                    <span className="sm:hidden">{t.label.slice(0,3)}</span>
+                    {t.key === 'pending' && stats?.pendingWorkers > 0 && (
+                      <span className="bg-amber-400 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none">
+                        {stats.pendingWorkers}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {loading && <div className="flex justify-center py-12"><RefreshCw className="w-6 h-6 text-gray-300 animate-spin" /></div>}
-
-            {!loading && workers.length === 0 && (
-              <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-                <CheckCircle2 className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-                <p className="text-gray-400 font-medium">No {activeTab} workers</p>
-              </div>
+            {workerSearch && (
+              <p className="text-xs text-gray-400 font-medium">
+                "{workerSearch}" — {filteredWorkers.length}টি ফলাফল
+              </p>
             )}
 
-            {!loading && workers.length > 0 && (
+            {loading && <div className="flex justify-center py-12"><RefreshCw className="w-6 h-6 text-gray-300 animate-spin" /></div>}
+            {!loading && filteredWorkers.length === 0 && (
+              <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+                <CheckCircle2 className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                <p className="text-gray-400 font-medium">কোনো কারিগর পাওয়া যায়নি</p>
+              </div>
+            )}
+            {!loading && filteredWorkers.length > 0 && (
               <div className="space-y-3">
-                {workers.map((w) => (
+                {filteredWorkers.map((w) => (
                   <WorkerRow key={w._id} worker={w} token={token} onRefresh={() => { loadWorkers(); loadStats(); }} />
                 ))}
               </div>
@@ -1186,22 +1855,58 @@ export default function AdminDashboard() {
           </>
         )}
 
-        {/* Clients view */}
+        {/* ── Clients view ── */}
         {view === 'clients' && (
           <>
+            {/* Search + sort bar */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <SearchIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="search" value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                  placeholder="নাম, ইমেইল, ফোন, এলাকা দিয়ে খুঁজুন..."
+                  className="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:border-green-500"
+                />
+              </div>
+              <select value={clientSort} onChange={(e) => setClientSort(e.target.value)}
+                className="text-sm bg-white border border-gray-200 rounded-xl px-3 py-2.5 outline-none cursor-pointer font-medium text-gray-700">
+                <option value="newest">সর্বশেষ রেজিস্ট্রেশন</option>
+                <option value="oldest">পুরনো আগে</option>
+                <option value="name">নাম অনুযায়ী</option>
+              </select>
+            </div>
+
+            {/* Count chip */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-400">
+                মোট: <span className="text-gray-800">{clients.length}</span>
+                {clientSearch && ` / ফিল্টার: ${filteredClients.length}`}
+              </span>
+              {clientSearch && (
+                <button onClick={() => setClientSearch('')}
+                  className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-500 hover:bg-red-100">
+                  ✕ ক্লিয়ার
+                </button>
+              )}
+            </div>
+
             {loading && <div className="flex justify-center py-12"><RefreshCw className="w-6 h-6 text-gray-300 animate-spin" /></div>}
-            {!loading && clients.length === 0 && (
+            {!loading && filteredClients.length === 0 && (
               <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-                <p className="text-gray-400 font-medium">No clients registered yet</p>
+                <p className="text-gray-400 font-medium">{clientSearch ? 'কোনো ফলাফল নেই' : 'কোনো ক্লায়েন্ট নেই'}</p>
               </div>
             )}
-            {!loading && clients.length > 0 && (
+            {!loading && filteredClients.length > 0 && (
               <div className="space-y-3">
-                {clients.map((c) => <ClientRow key={c._id} client={c} />)}
+                {filteredClients.map((c) => <ClientRow key={c._id} client={c} />)}
               </div>
             )}
           </>
         )}
+
+        {/* ── All Users Management ── */}
+        {view === 'allusers' && <UserManagementPanel token={token} />}
 
         {/* Analytics */}
         {view === 'analytics' && <AnalyticsPanel token={token} />}

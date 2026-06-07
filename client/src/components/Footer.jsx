@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
-import { Wrench, ShieldCheck, FileText, Lock } from 'lucide-react';
+import { Wrench, ShieldCheck, FileText, Lock, BookOpen } from 'lucide-react';
 
-export default function Footer() {
+const Footer = memo(function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-400 mt-auto">
 
@@ -28,7 +29,10 @@ export default function Footer() {
             {/* Platform */}
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 font-bn">প্ল্যাটফর্ম</p>
-              <Link to="/browse"   className="block hover:text-white transition-colors font-bn">ব্রাউজ করুন</Link>
+              <Link to="/browse"   className="block hover:text-white transition-colors font-bn">কারিগর খুঁজুন</Link>
+              <Link to="/blog"     className="flex items-center gap-1.5 hover:text-white transition-colors font-bn">
+                <BookOpen className="w-3.5 h-3.5 shrink-0" /> ব্লগ
+              </Link>
               <Link to="/register" className="block hover:text-white transition-colors font-bn">রেজিস্টার করুন</Link>
               <Link to="/login"    className="block hover:text-white transition-colors font-bn">সাইন ইন</Link>
             </div>
@@ -59,4 +63,6 @@ export default function Footer() {
       </div>
     </footer>
   );
-}
+});
+
+export default Footer;

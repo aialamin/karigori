@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Clock, BadgeCheck, Star } from 'lucide-react';
 import { getCategoryInfo } from '../constants.js';
@@ -21,7 +22,7 @@ function StarsRow({ rating }) {
   );
 }
 
-export default function WorkerCard({ worker }) {
+const WorkerCard = memo(function WorkerCard({ worker }) {
   const cat = getCategoryInfo(worker.category);
 
   return (
@@ -37,7 +38,7 @@ export default function WorkerCard({ worker }) {
           {/* Avatar */}
           <div className="relative shrink-0">
             <img
-              src={worker.photo}
+              src={worker.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${worker.name}&backgroundColor=0F172A&textColor=ffffff`}
               alt={worker.name}
               loading="lazy"
               decoding="async"
@@ -108,4 +109,6 @@ export default function WorkerCard({ worker }) {
       </div>
     </Link>
   );
-}
+});
+
+export default WorkerCard;

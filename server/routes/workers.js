@@ -1,6 +1,11 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Worker from '../models/Worker.js';
 import Review from '../models/Review.js';
+
+function isValidObjectId(id) {
+  return mongoose.Types.ObjectId.isValid(id);
+}
 
 const router = express.Router();
 
@@ -40,10 +45,16 @@ router.get('/', async (req, res) => {
     };
 
     const skip  = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Worker.countDocuments(filter);
-    const workers = await Worker.find(filter)
-      .sort(sortMap[sort] || sortMap.default)
-      .skip(skip).limit(parseInt(limit));
+    // Run count + find in parallel; use lean() for plain JS objects (no Mongoose overhead)
+    const [total, workers] = await Promise.all([
+      Worker.countDocuments(filter),
+      Worker.find(filter)
+        .sort(sortMap[sort] || sortMap.default)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .select('name photo category areas rating reviewCount experience hourlyRate verified available verificationLevel status subcategories userId')
+        .lean(),
+    ]);
 
     res.json({ workers, total, page: parseInt(page), totalPages: Math.ceil(total / parseInt(limit)) });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -51,6 +62,8 @@ router.get('/', async (req, res) => {
 
 // GET /api/workers/:id
 router.get('/:id', async (req, res) => {
+  if (!isValidObjectId(req.params.id))
+    return res.status(400).json({ message: 'Invalid worker ID' });
   try {
     const worker = await Worker.findById(req.params.id);
     if (!worker) return res.status(404).json({ message: 'Worker not found' });
@@ -60,6 +73,8 @@ router.get('/:id', async (req, res) => {
 
 // GET /api/workers/:id/reviews
 router.get('/:id/reviews', async (req, res) => {
+  if (!isValidObjectId(req.params.id))
+    return res.status(400).json({ message: 'Invalid worker ID' });
   try {
     const { page = 1, limit = 10 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -74,7 +89,7 @@ router.get('/:id/reviews', async (req, res) => {
 
     // Rating distribution (count per star)
     const dist = await Review.aggregate([
-      { $match: { workerId: new (await import('mongoose')).default.Types.ObjectId(req.params.id) } },
+      { $match: { workerId: new mongoose.Types.ObjectId(req.params.id) } },
       { $group: { _id: '$rating', count: { $sum: 1 } } },
     ]);
     const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -86,6 +101,8 @@ router.get('/:id/reviews', async (req, res) => {
 
 // POST /api/workers/:id/reviews
 router.post('/:id/reviews', async (req, res) => {
+  if (!isValidObjectId(req.params.id))
+    return res.status(400).json({ message: 'Invalid worker ID' });
   try {
     const { reviewerName, reviewerEmail, rating, comment } = req.body;
 

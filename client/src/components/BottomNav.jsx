@@ -1,12 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, LayoutGrid, User } from 'lucide-react';
+import { Home, Search, BookOpen, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const TABS = [
-  { to: '/',       icon: Home,        label: 'হোম' },
-  { to: '/browse', icon: Search,      label: 'খুঁজুন' },
-  { to: '/browse', icon: LayoutGrid,  label: 'ক্যাটাগরি', isCat: true },
-  { to: null,      icon: User,        label: 'প্রোফাইল', isProfile: true },
+  { to: '/',       icon: Home,      label: 'হোম' },
+  { to: '/browse', icon: Search,    label: 'খুঁজুন' },
+  { to: '/blog',   icon: BookOpen,  label: 'ব্লগ' },
+  { to: null,      icon: User,      label: 'প্রোফাইল', isProfile: true },
 ];
 
 export default function BottomNav() {
@@ -25,7 +25,9 @@ export default function BottomNav() {
       <div className="flex items-stretch h-16">
         {TABS.map(({ to, icon: Icon, label, isCat, isProfile }) => {
           const href   = isProfile ? profileHref() : to;
-          const active = pathname === href || (to === '/browse' && pathname.startsWith('/browse'));
+          const active = pathname === href
+            || (to === '/browse' && pathname.startsWith('/browse'))
+            || (to === '/blog'   && pathname.startsWith('/blog'));
           return (
             <Link key={label} to={href}
               className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors

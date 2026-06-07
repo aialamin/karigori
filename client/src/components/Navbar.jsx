@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Wrench, LogOut, User, ShieldCheck, LayoutDashboard,
-  ChevronDown, Menu, X, Search, FileText, Lock, Shield,
+  ChevronDown, Menu, X, Search, FileText, Lock, Shield, BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -38,8 +38,9 @@ export default function Navbar() {
         {/* Desktop nav links */}
         <nav className="hidden md:flex items-center gap-1">
           {[
-            { to: '/', label: 'হোম' },
+            { to: '/',       label: 'হোম' },
             { to: '/browse', label: 'কারিগর খুঁজুন' },
+            { to: '/blog',   label: 'ব্লগ' },
           ].map(({ to, label }) => (
             <Link key={to} to={to}
               className={`px-4 py-2 rounded-full text-sm font-semibold transition-all
@@ -123,7 +124,11 @@ export default function Navbar() {
       {/* Mobile drawer */}
       {mobileOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 px-4 pb-6 pt-3 space-y-1">
-          {[{ to: '/', label: 'হোম' }, { to: '/browse', label: 'কারিগর খুঁজুন' }].map(({ to, label }) => (
+          {[
+            { to: '/',       label: 'হোম' },
+            { to: '/browse', label: 'কারিগর খুঁজুন' },
+            { to: '/blog',   label: 'ব্লগ' },
+          ].map(({ to, label }) => (
             <Link key={to} to={to} onClick={() => setMob(false)}
               className={`flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-colors
                 ${active(to) ? 'bg-trust-50 text-trust-700' : 'text-navy-900 hover:bg-gray-50'}`}>

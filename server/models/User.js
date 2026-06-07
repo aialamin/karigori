@@ -7,11 +7,15 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true, minlength: 6 },
   role:     { type: String, enum: ['worker', 'client', 'admin'], required: true },
   phone:    { type: String, default: '', trim: true },
-  area:     { type: String, default: '' },
+  area:         { type: String, default: '' },
+  resetOtp:     { type: String, default: null },
+  resetOtpExpiry: { type: Date, default: null },
 }, { timestamps: true });
 
 // Sparse unique index: applies only when phone is non-empty
 userSchema.index({ phone: 1 }, { unique: true, sparse: true, partialFilterExpression: { phone: { $gt: '' } } });
+userSchema.index({ role: 1, createdAt: -1 });  // admin user list
+userSchema.index({ name: 'text', email: 'text', area: 'text' }); // user search
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
