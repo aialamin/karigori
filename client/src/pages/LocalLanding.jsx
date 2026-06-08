@@ -85,26 +85,8 @@ const CHIPS = [
 ];
 
 function TrustChips() {
-  const trackRef = useRef(null);
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    let raf; let pos = 0;
-    const speed = 0.7;
-    const half = () => el.scrollWidth / 2;
-    const tick = () => {
-      if (!el.matches(':hover')) { pos += speed; if (pos >= half()) pos = 0; el.scrollLeft = pos; }
-      raf = requestAnimationFrame(tick);
-    };
-    const mq = window.matchMedia('(max-width: 639px)');
-    if (mq.matches) raf = requestAnimationFrame(tick);
-    const onChange = (e) => { if (e.matches) raf = requestAnimationFrame(tick); else cancelAnimationFrame(raf); };
-    mq.addEventListener('change', onChange);
-    return () => { cancelAnimationFrame(raf); mq.removeEventListener('change', onChange); };
-  }, []);
-
   const chip = ({ icon: Icon, label, sub, iconBg, pillBg, pillBorder, textColor }, i) => (
-    <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-2xl shrink-0 hover:scale-105 hover:shadow-md transition-all select-none"
+    <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-150 active:scale-[0.97] select-none"
       style={{ background: pillBg, border: `2px solid ${pillBorder}` }}>
       <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-md" style={{ background: iconBg }}>
         <Icon style={{ width: 18, height: 18, color: '#fff' }} />
@@ -117,13 +99,8 @@ function TrustChips() {
   );
 
   return (
-    <section className="bg-white border-b border-gray-100 py-5">
-      <div ref={trackRef} className="sm:hidden overflow-x-auto scrollbar-hide">
-        <div className="flex items-stretch gap-3 px-4 flex-nowrap" style={{ width: 'max-content' }}>
-          {[...CHIPS, ...CHIPS].map(chip)}
-        </div>
-      </div>
-      <div className="hidden sm:flex items-stretch justify-center gap-3 px-6">
+    <section className="bg-white border-b border-gray-100 py-4">
+      <div className="max-w-5xl mx-auto px-4 flex flex-wrap justify-center gap-2 sm:gap-3">
         {CHIPS.map(chip)}
       </div>
     </section>

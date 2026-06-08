@@ -126,19 +126,18 @@ export default function BlogPost() {
   const [notFound,  setNotFound] = useState(false);
 
   useEffect(() => {
-    setLoading(true); setNotFound(false);
-    // Fetch full blog post from API first
+    setLoading(true); setNotFound(false); setBlog(null);
+    // Fetch full blog post from API first; fall back to static data if not found/not published
     fetch(`/api/blogs/${slug}`)
-      .then((r) => {
-        if (r.status === 404) { setNotFound(true); return null; }
-        return r.ok ? r.json() : null;
-      })
+      .then((r) => r.ok ? r.json() : null)
       .then((data) => {
-        if (data) { setBlog(data); }
-        else if (!notFound) {
-          // Fallback to static
+        if (data) {
+          setBlog(data);
+        } else {
+          // API returned nothing (404 / unpublished) — try static fallback
           const s = STATIC_BLOGS.find((b) => b.slug === slug);
-          if (s) setBlog(s); else setNotFound(true);
+          if (s) setBlog(s);
+          else setNotFound(true);
         }
       })
       .catch(() => {
