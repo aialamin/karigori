@@ -7,6 +7,7 @@ import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import BottomNav from './components/BottomNav.jsx';
 import NoticeModal from './components/NoticeModal.jsx';
+import PWAInstallBanner from './components/PWAInstallBanner.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 const Home            = lazy(() => import('./pages/Home.jsx'));
@@ -188,6 +189,7 @@ function Shell() {
       {/* Admin notice modal */}
       {showNotice && notice?.active && (
         <NoticeModal notice={notice} onClose={() => setShowNotice(false)} />
+        <PWAInstallBanner />
       )}
     </div>
   );
